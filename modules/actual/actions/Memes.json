@@ -1,0 +1,9 @@
+{
+    "Name": "Memes",
+    "Keyword": "Маркус, мем",
+    "IsActive": "true",
+    "IsAdmin": "true",
+    "Description": "Бот отправит рандомный мем в формате картинки",
+    "ActionType": "random_image",
+    "Location": "/srv/workdir/resources/images/memes"
+}

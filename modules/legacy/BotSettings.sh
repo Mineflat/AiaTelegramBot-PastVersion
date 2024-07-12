@@ -1,0 +1,5 @@
+ActionsDirectory=""
+LogPath=""
+UUIDStorageLocation=""
+ConversationStorageLocation=""
+WhitelistLocation=""

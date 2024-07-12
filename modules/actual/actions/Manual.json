@@ -1,0 +1,9 @@
+{
+    "Name": "Manual",
+    "Keyword": "Маркус, мануал",
+    "IsActive": "true",
+    "IsAdmin": "true",
+    "Description": "Бот отправит тебе мануал с описанием отказоустойчивой инсталляции ПК САКУРА",
+    "ActionType": "file",
+    "Location": "/srv/workdir/resources/manual.zip"
+}

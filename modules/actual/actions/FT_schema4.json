@@ -1,0 +1,9 @@
+{
+    "Name": "FT_schema4",
+    "Keyword": "Маркус, схема 4",
+    "IsActive": "true",
+    "IsAdmin": "true",
+    "Description": "Бот отправит схему отказоустойчивой инсталляции 4 типа",
+    "ActionType": "file",
+    "Location": "/srv/workdir/resources/images/FT_schema/FT_schema4.png"
+}

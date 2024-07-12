@@ -1,0 +1,9 @@
+{
+    "Name": "FT_schema5_image",
+    "Keyword": "Маркус, номер 5",
+    "IsActive": "true",
+    "IsAdmin": "true",
+    "Description": "Бот отправит схему отказоустойчивой инсталляции 5 типа (в формате изображения)",
+    "ActionType": "random_image",
+    "Location": "/srv/workdir/resources/images/FT_schema/FT_schema5/"
+}

@@ -1,0 +1,9 @@
+{
+    "Name": "Toasts",
+    "Keyword": "Маркус, тост",
+    "IsActive": "true",
+    "IsAdmin": "true",
+    "Description": "Бот отправит рандомный тост",
+    "ActionType": "random_text",
+    "Location": "/srv/workdir/resources/toast_list"
+}

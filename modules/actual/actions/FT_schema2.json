@@ -1,0 +1,9 @@
+{
+    "Name": "FT_schema2",
+    "Keyword": "Маркус, схема 2",
+    "IsActive": "true",
+    "IsAdmin": "true",
+    "Description": "Бот отправит схему отказоустойчивой инсталляции 2 типа",
+    "ActionType": "file",
+    "Location": "/srv/workdir/resources/images/FT_schema/FT_schema2.png"
+}

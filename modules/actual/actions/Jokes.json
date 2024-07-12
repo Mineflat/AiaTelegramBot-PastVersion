@@ -1,0 +1,9 @@
+{
+    "Name": "Jokes",
+    "Keyword": "Маркус, анекдот",
+    "IsActive": "true",
+    "IsAdmin": "true",
+    "Description": "Бот отправит рандомный анекдот",
+    "ActionType": "random_text",
+    "Location": "/srv/workdir/resources/jokes_list"
+}
