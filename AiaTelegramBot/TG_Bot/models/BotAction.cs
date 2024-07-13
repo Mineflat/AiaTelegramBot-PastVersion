@@ -1,10 +1,12 @@
 ﻿using AiaTelegramBot.Logging;
+using Polly;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.Design;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
@@ -118,7 +120,7 @@ namespace AiaTelegramBot.TG_Bot.models
                 }
                 else
                 {
-                    await client.SendTextMessageAsync(update.Message.Chat.Id, $"Cодержимое файла:\n```\n{Location.Replace("\\", "\\\\")}\n```\n```\n{fileText.Replace("\\n", "\n")}\n```\n",
+                    await client.SendTextMessageAsync(update.Message.Chat.Id, $"Cодержимое файла:\n```\n{Location.Replace("\\", "\\\\")}\n```\n```\n{fileText.Replace("\\n", "\n")}\n```",
                         cancellationToken: token,
                         replyToMessageId: update.Message.MessageId,
                         parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
@@ -154,7 +156,7 @@ namespace AiaTelegramBot.TG_Bot.models
                     .Where(s => new List<string> { "jpg", "gif", "png", "jpeg" }
                     .Contains(Path.GetExtension(s).TrimStart('.').ToLowerInvariant()))
                     .ToList<string>();
-                BotLogger.Log($"В директории {Location} и поддиректориях обнаружено картинок: {images.Count} (только форматы: *.jpg, *.jpeg, *.png, *.gif )", LogLevels.INFO, logPath);
+                BotLogger.Log($"В директории {Location} и поддиректориях обнаружено картинок: {images.Count} (только форматы: *.jpg, *.jpeg, *.png, *.gif)", LogLevels.INFO, logPath);
                 if (images.Count == 0)
                 {
                     BotLogger.Log($"В указанной директории нет картинок: \"{Location}\"", LogLevels.ERROR, logPath);
@@ -199,7 +201,8 @@ namespace AiaTelegramBot.TG_Bot.models
                 var message = await client.SendDocumentAsync(update.Message.Chat.Id,
                     document: Telegram.Bot.Types.InputFile.FromStream(stream, $"{name?.Replace(".", "\\.")}"),
                     caption: $"Файл `{(string.IsNullOrEmpty(name) ? "[скрыто]" : $"{Filename}")}`",
-                    replyToMessageId: update.Message.MessageId);
+                    replyToMessageId: update.Message.MessageId,
+                    parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
                 BotLogger.Log($"Отправлен файл \"{path}\" в чат {update.Message.Chat.Id} (пользователь {update.Message.From?.Username ?? "[не определено]"})",
                     LogLevels.SUCCESS, logPath);
             }
@@ -224,13 +227,13 @@ namespace AiaTelegramBot.TG_Bot.models
             }
             BotLogger.Log($"Запуск скрипта по команде \"{Keyword}\":\n\t{Location.Replace("\\", "\\\\")} {args}", LogLevels.INFO, logPath);
 
-            await client.SendTextMessageAsync(update.Message.Chat.Id, $"Запуск скрипта по команде \"{Keyword}\":\n```\n{Filename ?? "нет имени файла"} {args}\n```",
+            await client.SendTextMessageAsync(update.Message.Chat.Id, $"Запуск скрипта по команде `{Keyword}`:\n```\n{Filename ?? "нет имени файла"} {args}\n```",
                 cancellationToken: token,
                 replyToMessageId: update.Message.MessageId,
                 parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+            string output = string.Empty;
             try
             {
-                string output = string.Empty;
                 var process = new Process
                 {
                     StartInfo =
@@ -239,20 +242,23 @@ namespace AiaTelegramBot.TG_Bot.models
                         Arguments = $"{args}",
                         RedirectStandardOutput = true,
                         RedirectStandardInput = true,
-                    }
+                        CreateNoWindow = true
+                    }                    
                 };
-                process.EnableRaisingEvents = true;
+                process.EnableRaisingEvents = false;
                 process.OutputDataReceived += (sender, args) =>
                 {
                     if (!string.IsNullOrEmpty(args.Data))
                     {
-                        if (LogOutput) BotLogger.Log($"{args.Data}", LogLevels.SCRIPT, logPath);
                         output += $"{args.Data}\n";
+                        if (LogOutput) BotLogger.Log($"{args.Data}", LogLevels.SCRIPT, logPath);
                     }
                 };
+                BotLogger.Log($"Запуск процесса {Location}", LogLevels.INFO, logPath);
                 process.Start();
                 process.BeginOutputReadLine();
                 process.WaitForExit();
+                BotLogger.Log($"Процесс {Location} завершился успешно", LogLevels.SUCCESS, logPath);
                 process.CancelOutputRead();
                 if (string.IsNullOrEmpty(output))
                 {
@@ -263,7 +269,7 @@ namespace AiaTelegramBot.TG_Bot.models
                 }
                 if (SendFile)
                 {
-                    if(!string.IsNullOrEmpty(FilePath))
+                    if (!string.IsNullOrEmpty(FilePath))
                     {
                         GetFile(client, update, token, logPath, FilePath);
                     }

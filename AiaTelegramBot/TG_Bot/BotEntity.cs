@@ -14,6 +14,7 @@ namespace AiaTelegramBot.TG_Bot
     {
         public string? BotID { get; protected set; } = string.Empty;
         public string? BotName { get; protected set; } = string.Empty;
+        protected StatUnit? statContiner = null;
         public static List<BotAction> BotActions = new List<BotAction>();
         public static List<string> WhiteList = new List<string>();
 
@@ -31,7 +32,6 @@ namespace AiaTelegramBot.TG_Bot
         protected ReceiverOptions Botoptions = new ReceiverOptions() { AllowedUpdates = { }, ThrowPendingUpdates = true };
 
         protected List<string> Usernames = new List<string>();
-
         protected async void StoreUsername(Telegram.Bot.Types.Update update)
         {
             if (!RunningConfiguration.StoreNewUsernames) return;
@@ -99,6 +99,7 @@ namespace AiaTelegramBot.TG_Bot
             try
             {
                 Telegram.Bot.Types.User botInfo = await botClient.GetMeAsync(cancellationToken: cancellationToken.Token);
+                statContiner = new StatUnit(BotName, BotID, DateTime.Now.ToLocalTime());
                 BotName = botInfo.Username ?? "[не определено]";
                 BotID = GetBotID(token);
                 Log($"Успешно запущен бот {BotName}!", BotLogger.LogLevels.SUCCESS);
@@ -122,6 +123,9 @@ namespace AiaTelegramBot.TG_Bot
         }
         protected async Task HandleUpdateAsync(ITelegramBotClient client, Telegram.Bot.Types.Update update, CancellationToken token)
         {
+#pragma warning disable CS8602 // Разыменование вероятной пустой ссылки.
+            statContiner.ReceivedUpdatesCount++;
+#pragma warning restore CS8602 // Разыменование вероятной пустой ссылки.
             StoreUsername(update);
             StoreConversation(update);
             switch (update.Type)
@@ -131,13 +135,15 @@ namespace AiaTelegramBot.TG_Bot
                     break;
                 case Telegram.Bot.Types.Enums.UpdateType.Message:
                     if (update.Message?.Text == null) return;
+                    statContiner.ReceivedMessagesCount++;
                     Log($"[{BotName}][{update.Message?.From?.FirstName} {update.Message?.From?.LastName} (@{update.Message?.From?.Username ?? "???"} - {update.Message?.From?.Id.ToString() ?? "???"})]: {update.Message?.Text ?? "[пустое сообщение]"}", BotLogger.LogLevels.MESSAGE);
                     string? msg = update.Message?.Text?.Trim();
                     if (string.IsNullOrEmpty(msg)) return;
                     bool userIsAdmin = false;
                     if (RunningConfiguration.Whitelist.Count > 0)
                     {
-                        if (RunningConfiguration.Whitelist.First(x => x == $"{update.Message?.From?.Id}") != null)
+                        //if (RunningConfiguration.Whitelist.First(x => x == $"{update.Message?.From?.Id}") != null)
+                        if (RunningConfiguration.Whitelist.FirstOrDefault(x => x == $"{update.Message?.From?.Id}") != null)
                         {
                             userIsAdmin = true;
                         }
@@ -156,38 +162,49 @@ namespace AiaTelegramBot.TG_Bot
                                     {
                                         SendAndLogMessage(client, update, token, "К сожалению, на данный момент эта команда *не активна*",
                                             BotLogger.LogLevels.WARNING, $"{RunningConfiguration.WorkingDirectory}/latest.log");
+                                        statContiner.SentMessagesCount++;
                                         return;
                                     }
                                     BotLogger.Log($"Запущена команда администратора ({update.Message.From.Id}/{BotActions[i].Name})",
                                         BotLogger.LogLevels.INFO, $"{RunningConfiguration.WorkingDirectory}/latest.log");
                                     await BotActions[i].RunAction(client, update, token, $"{RunningConfiguration.WorkingDirectory}/latest.log");
+                                    statContiner.SentMessagesCount++;
                                     return;
                                 }
                                 SendAndLogMessage(client, update, token, $"Обнаружена попытка запуска команды администратора пользователем, который им не является: {update.Message.From.Id} (@{update.Message.From.Username}).\n" +
                                     $"`Этот инцидент будет отправлен на рассмотрение активным администраторам`", BotLogger.LogLevels.WARNING, $"{RunningConfiguration.WorkingDirectory}/latest.log");
+                                statContiner.SentMessagesCount++;
                                 return;
                             }
                             if (!BotActions[i].IsActive)
                             {
-                                SendAndLogMessage(client, update, token, "К сожалению, на данный момент эта команда *не активна*", 
+                                SendAndLogMessage(client, update, token, "К сожалению, на данный момент эта команда *не активна*",
                                     BotLogger.LogLevels.WARNING, $"{RunningConfiguration.WorkingDirectory}/latest.log");
+                                statContiner.SentMessagesCount++;
                                 return;
                             }
 #pragma warning disable CS4014 // Так как этот вызов не ожидается, выполнение существующего метода продолжается до тех пор, пока вызов не будет завершен
                             BotActions[i].RunAction(client, update, token, logPath: $"{RunningConfiguration.WorkingDirectory}/latest.log");
+                            statContiner.SentMessagesCount++;
 #pragma warning restore CS4014 // Так как этот вызов не ожидается, выполнение существующего метода продолжается до тех пор, пока вызов не будет завершен
                             //await BotActions[i].RunAction(client, update, token, logPath: $"{RunningConfiguration.WorkingDirectory}/latest.log");
                             return;
                         }
                     }
-                    if (update.Message == null) return;
-                    switch (msg.ToLower())
+                    //if (update.Message == null) return;
+
+                    foreach (var command in new string[]
                     {
-                        case "/get actions":
-                        case "/help":
-                            GetHelpMessage(client, update, token, userIsAdmin);
-                            return;
-                        case "/get config":
+                        "/get config",
+                        "/get whitelist",
+                        "/update actions",
+                        "/update whitelist",
+                        "/update config",
+                        "/stats"
+                    })
+                    {
+                        if (msg.ToLower().StartsWith(command.ToLower()))
+                        {
                             if (!userIsAdmin)
                             {
                                 SendAndLogMessage(client, update, token, $"Обнаружена попытка запуска команды администратора пользователем, который им не является.\n" +
@@ -196,32 +213,26 @@ namespace AiaTelegramBot.TG_Bot
                                     $"{RunningConfiguration.WorkingDirectory}/latest.log");
                                 return;
                             }
+                        }
+                    }
+                    switch (msg.ToLower())
+                    {
+                        case "/get actions":
+                        case "/help":
+                            statContiner.SentMessagesCount++;
+                            GetHelpMessage(client, update, token, userIsAdmin);
+                            return;
+                        case "/get config":
                             SendAndLogMessage(client, update, token, $"Актуальная конфигурация бота:\n{RunningConfiguration.GetBotConfiguration()}",
                                 BotLogger.LogLevels.WARNING,
                                 $"{RunningConfiguration.WorkingDirectory}/latest.log");
                             break;
                         case "/get whitelist":
-                            if (!userIsAdmin)
-                            {
-                                SendAndLogMessage(client, update, token, $"Обнаружена попытка запуска команды администратора пользователем, который им не является.\n" +
-                                    $"`Этот инцидент будет отправлен на рассмотрение активным администраторам`",
-                                    BotLogger.LogLevels.WARNING,
-                                    $"{RunningConfiguration.WorkingDirectory}/latest.log");
-                                return;
-                            }
                             SendAndLogMessage(client, update, token, $"{RunningConfiguration.GetBotWhiteList()}",
                                 BotLogger.LogLevels.WARNING,
                                 $"{RunningConfiguration.WorkingDirectory}/latest.log");
                             break;
                         case "/update actions":
-                            if (!userIsAdmin)
-                            {
-                                SendAndLogMessage(client, update, token, $"Обнаружена попытка запуска команды администратора пользователем, который им не является.\n" +
-                                    $"`Этот инцидент будет отправлен на рассмотрение активным администраторам`",
-                                    BotLogger.LogLevels.WARNING,
-                                    $"{RunningConfiguration.WorkingDirectory}/latest.log");
-                                return;
-                            }
                             if (!UpdateBotActions())
                             {
                                 SendAndLogMessage(client, update, token, $"Не удалось обновить список действий бота",
@@ -229,19 +240,11 @@ namespace AiaTelegramBot.TG_Bot
                                     $"{RunningConfiguration.WorkingDirectory}/latest.log");
                                 return;
                             }
-                            SendAndLogMessage(client, update, token, $"Cписок действий бота успешно обновлен. Используйте команду `help`, чтобы получить актуальный список действий",
+                            SendAndLogMessage(client, update, token, $"Cписок действий бота успешно обновлен. активных действий: `{BotActions.Count}`.\nИспользуйте команду `/help`, чтобы получить актуальный список действий",
                                 BotLogger.LogLevels.WARNING,
                                 $"{RunningConfiguration.WorkingDirectory}/latest.log");
                             break;
                         case "/update whitelist":
-                            if (!userIsAdmin)
-                            {
-                                SendAndLogMessage(client, update, token, $"Обнаружена попытка запуска команды администратора пользователем, который им не является.\n" +
-                                    $"`Этот инцидент будет отправлен на рассмотрение активным администраторам`",
-                                    BotLogger.LogLevels.WARNING,
-                                    $"{RunningConfiguration.WorkingDirectory}/latest.log");
-                                return;
-                            }
                             if (!RunningConfiguration.UpdateBotWhiteList())
                             {
                                 SendAndLogMessage(client, update, token, $"Не удалось обновить белый список бота",
@@ -254,14 +257,6 @@ namespace AiaTelegramBot.TG_Bot
                                 $"{RunningConfiguration.WorkingDirectory}/latest.log");
                             break;
                         case "/update config":
-                            if (!userIsAdmin)
-                            {
-                                SendAndLogMessage(client, update, token, $"Обнаружена попытка запуска команды администратора пользователем, который им не является.\n" +
-                                    $"`Этот инцидент будет отправлен на рассмотрение активным администраторам`",
-                                    BotLogger.LogLevels.WARNING,
-                                    $"{RunningConfiguration.WorkingDirectory}/latest.log");
-                                return;
-                            }
                             if (!UpdateBotConfiguration())
                             {
                                 SendAndLogMessage(client, update, token, $"Не удалось обновить конфигурацию бота",
@@ -272,6 +267,11 @@ namespace AiaTelegramBot.TG_Bot
                             SendAndLogMessage(client, update, token, $"Конфигурация бота успешно обновлена:\n{RunningConfiguration.GetBotConfiguration()}",
                                 BotLogger.LogLevels.WARNING,
                                 $"{RunningConfiguration.WorkingDirectory}/latest.log");
+                            break;
+                        case "/stats":
+                            SendAndLogMessage(client, update, token, $"{statContiner.GetBotStats()}",
+                            BotLogger.LogLevels.COMMAND,
+                            $"{RunningConfiguration.WorkingDirectory}/latest.log");
                             break;
                     }
                     break;
@@ -287,6 +287,8 @@ namespace AiaTelegramBot.TG_Bot
         }
         protected async void SendAndLogMessage(ITelegramBotClient client, Telegram.Bot.Types.Update update, CancellationToken token, string runningMessage, BotLogger.LogLevels logLevel, string? logPath)
         {
+            if (statContiner != null) statContiner.SentMessagesCount++;
+
             if (update.Message == null || string.IsNullOrEmpty(runningMessage)) return;
             BotLogger.Log($"{runningMessage}",
                 logLevel, logPath);
