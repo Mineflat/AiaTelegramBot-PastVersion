@@ -15,6 +15,7 @@ using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bots.Types;
 using static AiaTelegramBot.Logging.BotLogger;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace AiaTelegramBot.TG_Bot.models
 {
@@ -32,6 +33,9 @@ namespace AiaTelegramBot.TG_Bot.models
         public string? Filename = string.Empty;
         public bool SendFile = false;
         public string? FilePath = null;
+        public string? TargetID { get; set; } = string.Empty;
+        public string? TargetMessage { get; set; } = string.Empty;
+
         protected List<string> FileContent = new List<string>();
         public BotAction(string name, string keyword, bool isActive, bool isAdmin, string actionType, string location)
         {
@@ -95,14 +99,35 @@ namespace AiaTelegramBot.TG_Bot.models
                 case "script":
                     RunScript(client, update, token, logPath);
                     break;
+                case "message":
+                    SendMessage(client, update, token, logPath);
+                    break;
                 default:
-                    IsActive = false;
                     BotLogger.Log($"Не удалось запустить действие \"{Name}\", т.к. оно имеет неправильный тип действия: \"{ActionType}\"",
                         BotLogger.LogLevels.ERROR, logPath);
+                    IsActive = false;
                     BotLogger.Log($"Действие \"{Name}\" помечено как неисполняемое (не может быть вызвано)",
                         BotLogger.LogLevels.INFO, logPath);
                     break;
             }
+        }
+        protected async void SendMessage(ITelegramBotClient client, Telegram.Bot.Types.Update update, CancellationToken token, string? logPath = null)
+        {
+            if (string.IsNullOrEmpty(update.Message?.Text)) return;
+            if (long.TryParse(TargetID, out long chat_id))
+            {
+                string? reply = $"{(string.IsNullOrEmpty(TargetMessage) ? $"{GetArgs(update.Message.Text)}" : $"{TargetMessage}")}";
+                if (string.IsNullOrEmpty(reply))
+                {
+                    await client.SendTextMessageAsync(chat_id,
+                        reply,
+                        cancellationToken: token,
+                        parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                    return;
+                }
+                BotLogger.Log($"Не удалось отправить сообщение пользователю {TargetID} - пустое сообщение и, при этом, не заполнен параметр TargetMessage ", LogLevels.ERROR, logPath);
+            }
+            BotLogger.Log($"Не удалось отправить сообщение пользователю {TargetID} - не числовой идентификатор", LogLevels.ERROR, logPath);
         }
         protected async void GetFileText(ITelegramBotClient client, Telegram.Bot.Types.Update update, CancellationToken token, string? logPath = null)
         {
@@ -243,7 +268,7 @@ namespace AiaTelegramBot.TG_Bot.models
                         RedirectStandardOutput = true,
                         RedirectStandardInput = true,
                         CreateNoWindow = true
-                    }                    
+                    }
                 };
                 process.EnableRaisingEvents = false;
                 process.OutputDataReceived += (sender, args) =>

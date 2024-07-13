@@ -8,8 +8,8 @@ namespace AiaTelegramBot.TG_Bot.models
 {
     internal class StatUnit
     {
-        public string? BotName { get; protected set; } = string.Empty;
-        public string? BotID { get; protected set; } = string.Empty;
+        public string? BotName { get; protected set; }
+        public string? BotID { get; protected set; }
         public DateTime StartTime { get; protected set; } = DateTime.Now;
         public double ReceivedUpdatesCount { get; set; } = 0;
         public double ReceivedMessagesCount { get; set; } = 0;
