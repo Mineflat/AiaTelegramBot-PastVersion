@@ -7,6 +7,7 @@ using Telegram.Bot.Exceptions;
 using Polly;
 using Newtonsoft.Json.Linq;
 using static System.Net.Mime.MediaTypeNames;
+using AiaTelegramBot.API;
 
 namespace AiaTelegramBot.TG_Bot
 {
@@ -17,14 +18,13 @@ namespace AiaTelegramBot.TG_Bot
         protected StatUnit? statContiner = null;
         public static List<BotAction> BotActions = new List<BotAction>();
         public static List<string> WhiteList = new List<string>();
-
+        protected BotAPIEntity? APIEntity = null;
         protected BotConfigurationUnit RunningConfiguration = new BotConfigurationUnit()
         {
             StoreConversationStory = false,
             StoreNewUsernames = false,
             StoreLogs = false
         };
-
         protected delegate bool FileLogger(string message, string location, BotLogger.LogLevels logLevel);
         protected delegate void ScreenLogger(string message, BotLogger.LogLevels logLevel);
         protected ITelegramBotClient? botClient;
@@ -104,6 +104,12 @@ namespace AiaTelegramBot.TG_Bot
                 BotID = GetBotID(token);
                 Log($"Успешно запущен бот {BotName}!", BotLogger.LogLevels.SUCCESS);
                 Log($"Идентификатор бота: {BotID}", BotLogger.LogLevels.INFO);
+                // Запуск API
+                if (RunningConfiguration.IsApiEnabled)
+                {
+                    APIEntity = new BotAPIEntity(RunningConfiguration.ApiPort, $"{RunningConfiguration.WorkingDirectory}/latest.log", botClient, cancellationToken);
+                    APIEntity.Listen();
+                }
             }
             catch (ApiRequestException botStartException)
             {

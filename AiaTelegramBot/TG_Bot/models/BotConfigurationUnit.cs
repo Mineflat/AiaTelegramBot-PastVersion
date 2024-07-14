@@ -50,6 +50,11 @@ namespace AiaTelegramBot.TG_Bot.models
         public string? ActionsDirectory { get; set; } = "";
         public bool HideInactiveActions { get; set; } = false;
 
+        public ushort ApiPort { get; protected set; } = 3200;
+        public bool IsApiEnabled { get; protected set; } = false;
+        //public string ApiKey { get; protected set; } = string.Empty;
+        public string? LogPath { get; protected set; } = string.Empty;
+
         #region По командам 
         // Список команд администратора:
         // - actions - Посмотреть список всех дейсчтвий, которые пропарсил бот
