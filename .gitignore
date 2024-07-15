@@ -361,3 +361,5 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/AiaTelegramBot/API/BotAPIEntity.cs
+/AiaTelegramBot/API/BotAPIEntity.cs
