@@ -396,7 +396,7 @@ namespace AiaTelegramBot.TG_Bot
                             SendAndLogMessage(client, update, token, $"{statContiner.GetBotStats()}",
                             BotLogger.LogLevels.COMMAND,
                             $"{RunningConfiguration.WorkingDirectory}/latest.log");
-                            break; //
+                            break;
                         case "/get api":
                             SendAndLogMessage(client, update, token, $"{API_URI_FORMATTED_MD_STATUS}",
                             BotLogger.LogLevels.COMMAND,
@@ -407,7 +407,7 @@ namespace AiaTelegramBot.TG_Bot
                                 BotLogger.LogLevels.COMMAND,
                                 $"{RunningConfiguration.WorkingDirectory}/latest.log");
                             StopApi();
-                            break; //
+                            break;
                         case "/restart api":
                             SendAndLogMessage(client, update, token, "Инициирую *перезапуск* сервиса API...",
                                 BotLogger.LogLevels.COMMAND,
@@ -417,10 +417,10 @@ namespace AiaTelegramBot.TG_Bot
                             RestartAPI();
                             await Task.Delay(1000);
                             RestartAPI();
-                            break; //
+                            break; 
                         case "/get action names":
                             string replyMsg = $"Список всех действий, о которых знает бот:\n";
-                            BotActions.ForEach(x => replyMsg += $"{(x.IsActive ? "✅" : "⛔️")} {(string.IsNullOrEmpty(x.Name) ? "[пусто]\n" : $"{x.Name}\n")}");
+                            BotActions.ForEach(x => replyMsg += $"✅ {(string.IsNullOrEmpty(x.Name) ? "[пусто]\n" : $"{x.Name}\n")}");
                             await client.SendTextMessageAsync(update.Message.Chat.Id, replyMsg,
                                 cancellationToken: token,
                                 replyToMessageId: update.Message.MessageId,
