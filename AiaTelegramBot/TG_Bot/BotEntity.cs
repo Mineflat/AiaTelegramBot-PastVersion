@@ -17,10 +17,11 @@ namespace AiaTelegramBot.TG_Bot
     {
         #region API
         private HttpListener? APIListener;
-        string API_URI_FORMATTED_MD_STATUS = "⛔️ В данный момент API бота недоступно"; 
+        string API_URI_FORMATTED_MD_STATUS = "⛔️ В данный момент API бота недоступно";
         protected async void StartAPI()
         {
-            if(botClient == null)
+
+            if (botClient == null)
             {
                 BotLogger.Log("Невозможно запустить API, т.к. бот не запущен", BotLogger.LogLevels.ERROR, $"{RunningConfiguration.WorkingDirectory}/latest.log");
                 StopApi();
@@ -32,7 +33,7 @@ namespace AiaTelegramBot.TG_Bot
                 BotLogger.Log($"Запуск API на http://127.0.0.1:{RunningConfiguration.ApiPort}/", BotLogger.LogLevels.INFO, $"{RunningConfiguration.WorkingDirectory}/latest.log");
                 APIListener.Prefixes.Add($"http://127.0.0.1:{RunningConfiguration.ApiPort}/{BotID}/");
                 APIListener.Prefixes.Add($"http://localhost:{RunningConfiguration.ApiPort}/{BotID}/");
-                API_URI_FORMATTED_MD_STATUS = $"✅ API бота доступно по следующим адресам:\n- `http://localhost:{RunningConfiguration.ApiPort}/{BotID}/`\n-`http://localhost:{RunningConfiguration.ApiPort}/{BotID}/`";
+                API_URI_FORMATTED_MD_STATUS = $"✅ API бота доступно по следующим адресам:\n```\nhttp://localhost:{RunningConfiguration.ApiPort}/{BotID}/\n```\n```\nhttp://localhost:{RunningConfiguration.ApiPort}/{BotID}/\n```";
                 APIListener.Start();
                 BotLogger.Log($"Успешно запущено API на http://127.0.0.1:{RunningConfiguration.ApiPort}/", BotLogger.LogLevels.SUCCESS, $"{RunningConfiguration.WorkingDirectory}/latest.log");
                 while (true)
@@ -83,7 +84,7 @@ namespace AiaTelegramBot.TG_Bot
             }
             catch (Exception tcpListenerException)
             {
-                BotLogger.Log($"Ошибка при запуске сервиса API:\n{tcpListenerException.Message}", BotLogger.LogLevels.ERROR, $"{RunningConfiguration}/latest.log");
+                BotLogger.Log($"Ошибка при запуске сервиса API:\n{tcpListenerException.Message}", BotLogger.LogLevels.WARNING, $"{RunningConfiguration}/latest.log");
             }
             finally
             {
@@ -104,7 +105,7 @@ namespace AiaTelegramBot.TG_Bot
             if (APIListener != null)
             {
                 API_URI_FORMATTED_MD_STATUS = "⛔️ В данный момент API бота недоступно";
-                APIListener.Stop();
+                if (APIListener.IsListening) APIListener.Stop();
                 APIListener.Close();
                 APIListener = null;
                 BotLogger.Log($"Сервис API остановлен", BotLogger.LogLevels.SUCCESS, $"{RunningConfiguration}/latest.log");
@@ -411,6 +412,10 @@ namespace AiaTelegramBot.TG_Bot
                             SendAndLogMessage(client, update, token, "Инициирую *перезапуск* сервиса API...",
                                 BotLogger.LogLevels.COMMAND,
                                 $"{RunningConfiguration.WorkingDirectory}/latest.log");
+                            // Пока вы пишете код, который контролирует фабрику асинхронных лисенеров, я тупо перезапускаю API-сервис дважды и живу спокойно :)
+                            // Да, это откровенно конченое решение, да еще и работает с задержкой от 500 мс, но оно РАБОТАЕТ
+                            RestartAPI();
+                            await Task.Delay(1000);
                             RestartAPI();
                             break; //
                         case "/get action names":
