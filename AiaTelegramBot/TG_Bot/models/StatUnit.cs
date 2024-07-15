@@ -17,8 +17,8 @@ namespace AiaTelegramBot.TG_Bot.models
 
         public StatUnit(string? botName, string? botID, DateTime startTime)
         {
-            BotName = botName;
-            BotID = botID;
+            BotName = string.IsNullOrEmpty(botName) ? "(не определено)": botName;
+            BotID = string.IsNullOrEmpty(botID) ? "(не определено)" : botID; 
             StartTime = startTime;
         }
 

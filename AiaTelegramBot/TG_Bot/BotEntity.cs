@@ -17,6 +17,7 @@ namespace AiaTelegramBot.TG_Bot
     {
         #region API
         private HttpListener? APIListener;
+        string API_URI_FORMATTED_MD_STATUS = "⛔️ В данный момент API бота недоступно"; 
         protected async void StartAPI()
         {
             if(botClient == null)
@@ -29,8 +30,9 @@ namespace AiaTelegramBot.TG_Bot
             {
                 APIListener = new HttpListener();
                 BotLogger.Log($"Запуск API на http://127.0.0.1:{RunningConfiguration.ApiPort}/", BotLogger.LogLevels.INFO, $"{RunningConfiguration.WorkingDirectory}/latest.log");
-                APIListener.Prefixes.Add($"http://127.0.0.1:{RunningConfiguration.ApiPort}/");
-                APIListener.Prefixes.Add($"http://localhost:{RunningConfiguration.ApiPort}/");
+                APIListener.Prefixes.Add($"http://127.0.0.1:{RunningConfiguration.ApiPort}/{BotID}/");
+                APIListener.Prefixes.Add($"http://localhost:{RunningConfiguration.ApiPort}/{BotID}/");
+                API_URI_FORMATTED_MD_STATUS = $"✅ API бота доступно по следующим адресам:\n- `http://localhost:{RunningConfiguration.ApiPort}/{BotID}/`\n-`http://localhost:{RunningConfiguration.ApiPort}/{BotID}/`";
                 APIListener.Start();
                 BotLogger.Log($"Успешно запущено API на http://127.0.0.1:{RunningConfiguration.ApiPort}/", BotLogger.LogLevels.SUCCESS, $"{RunningConfiguration.WorkingDirectory}/latest.log");
                 while (true)
@@ -92,6 +94,7 @@ namespace AiaTelegramBot.TG_Bot
         {
             if (RunningConfiguration.IsApiEnabled)
             {
+                BotLogger.Log($"Сервис API перезапускается...", BotLogger.LogLevels.INFO, $"{RunningConfiguration}/latest.log");
                 StopApi();
                 StartAPI();
             }
@@ -100,6 +103,7 @@ namespace AiaTelegramBot.TG_Bot
         {
             if (APIListener != null)
             {
+                API_URI_FORMATTED_MD_STATUS = "⛔️ В данный момент API бота недоступно";
                 APIListener.Stop();
                 APIListener.Close();
                 APIListener = null;
@@ -205,11 +209,11 @@ namespace AiaTelegramBot.TG_Bot
             try
             {
                 Telegram.Bot.Types.User botInfo = await botClient.GetMeAsync(cancellationToken: cancellationToken.Token);
-                statContiner = new StatUnit(BotName, BotID, DateTime.Now.ToLocalTime());
                 BotName = botInfo.Username ?? "[не определено]";
                 BotID = GetBotID(token);
                 Log($"Успешно запущен бот {BotName}!", BotLogger.LogLevels.SUCCESS);
                 Log($"Идентификатор бота: {BotID}", BotLogger.LogLevels.INFO);
+                statContiner = new StatUnit(BotName, BotID, DateTime.Now.ToLocalTime());
                 // Запуск API
                 RestartAPI();
                 //if (RunningConfiguration.IsApiEnabled) 
@@ -313,7 +317,12 @@ namespace AiaTelegramBot.TG_Bot
                         "/update actions",
                         "/update whitelist",
                         "/update config",
-                        "/stats"
+                        "/stats",
+                        "/get api",
+                        "/stop api",
+                        "/restart api",
+                        "/get action names",
+                        "/ping"
                     })
                     {
                         if (msg.ToLower().StartsWith(command.ToLower()))
@@ -328,6 +337,7 @@ namespace AiaTelegramBot.TG_Bot
                             }
                         }
                     }
+                    if (update.Message == null) return;
                     switch (msg.ToLower())
                     {
                         case "/get actions":
@@ -385,6 +395,37 @@ namespace AiaTelegramBot.TG_Bot
                             SendAndLogMessage(client, update, token, $"{statContiner.GetBotStats()}",
                             BotLogger.LogLevels.COMMAND,
                             $"{RunningConfiguration.WorkingDirectory}/latest.log");
+                            break; //
+                        case "/get api":
+                            SendAndLogMessage(client, update, token, $"{API_URI_FORMATTED_MD_STATUS}",
+                            BotLogger.LogLevels.COMMAND,
+                            $"{RunningConfiguration.WorkingDirectory}/latest.log");
+                            break;
+                        case "/stop api":
+                            SendAndLogMessage(client, update, token, "Инициирую *остановку* сервиса API...",
+                                BotLogger.LogLevels.COMMAND,
+                                $"{RunningConfiguration.WorkingDirectory}/latest.log");
+                            StopApi();
+                            break; //
+                        case "/restart api":
+                            SendAndLogMessage(client, update, token, "Инициирую *перезапуск* сервиса API...",
+                                BotLogger.LogLevels.COMMAND,
+                                $"{RunningConfiguration.WorkingDirectory}/latest.log");
+                            RestartAPI();
+                            break; //
+                        case "/get action names":
+                            string replyMsg = $"Список всех действий, о которых знает бот:\n";
+                            BotActions.ForEach(x => replyMsg += $"{(x.IsActive ? "✅" : "⛔️")} {(string.IsNullOrEmpty(x.Name) ? "[пусто]\n" : $"{x.Name}\n")}");
+                            await client.SendTextMessageAsync(update.Message.Chat.Id, replyMsg,
+                                cancellationToken: token,
+                                replyToMessageId: update.Message.MessageId,
+                                parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                            break;
+                        case "/ping":
+                            await client.SendTextMessageAsync(update.Message.Chat.Id, "✅ PONG",
+                                cancellationToken: token,
+                                replyToMessageId: update.Message.MessageId,
+                                parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
                             break;
                     }
                     break;
