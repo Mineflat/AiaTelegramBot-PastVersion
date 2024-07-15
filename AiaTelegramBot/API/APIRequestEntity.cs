@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,9 +9,9 @@ namespace AiaTelegramBot.API
 {
     internal class APIRequestEntity
     {
-        public string ActionName {  get; set; } = string.Empty;
+        [JsonRequired]
+        public string ActionName {  get; set; }
         public long ChatID { get; set; } = 0;
-
         public string? Args {  get; set; } = null;
 
         public APIRequestEntity(string actionName, long chatID, string? args)

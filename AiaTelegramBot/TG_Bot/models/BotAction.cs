@@ -67,16 +67,6 @@ namespace AiaTelegramBot.TG_Bot.models
             return null;
         }
         //public async Task RunApiAction(ITelegramBotClient client, CancellationToken token, string? logPath = null)
-        public async Task RunApiAction(ITelegramBotClient? client, CancellationToken token, long chatID, string? args)
-        {
-            if(client == null) return;
-            if(chatID != 0)
-            {
-                await client.SendTextMessageAsync()
-            }
-            await Console.Out.WriteLineAsync($"Выполнено действие:\n{GetActionInfo()}");
-
-        }
         public async Task RunAction(ITelegramBotClient client, Telegram.Bot.Types.Update update, CancellationToken token, string? logPath = null)
         {
             if (!IsActive)
@@ -130,10 +120,11 @@ namespace AiaTelegramBot.TG_Bot.models
                 string? reply = $"{(string.IsNullOrEmpty(TargetMessage) ? $"{GetArgs(update.Message.Text)}" : $"{TargetMessage}")}";
                 if (string.IsNullOrEmpty(reply))
                 {
-                    await client.SendTextMessageAsync(chat_id,
-                        reply,
-                        cancellationToken: token,
-                        parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                    SendCustomMessage_API(client, update, token, reply);
+                    //await client.SendTextMessageAsync(chat_id,
+                    //    reply,
+                    //    cancellationToken: token,
+                    //    parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
                     return;
                 }
                 BotLogger.Log($"Не удалось отправить сообщение пользователю {TargetID} - пустое сообщение и, при этом, не заполнен параметр TargetMessage ", LogLevels.ERROR, logPath);
@@ -149,17 +140,19 @@ namespace AiaTelegramBot.TG_Bot.models
                 if (string.IsNullOrEmpty(fileText))
                 {
                     BotLogger.Log($"Cодержимое файла \"{Location.Replace("\\", "\\\\")}\" является пустой строкой", LogLevels.ERROR, logPath);
-                    await client.SendTextMessageAsync(update.Message.Chat.Id, $"Cодержимое файла:\n```\n{Location.Replace("\\", "\\\\")}\n```\n не может быть отправлено, т.к. является пустой строкой",
-                        cancellationToken: token,
-                        replyToMessageId: update.Message.MessageId,
-                        parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                    SendCustomMessage_API(client, update, token, $"Cодержимое файла:\n```\n{Location.Replace("\\", "\\\\")}\n```\n не может быть отправлено, т.к. является пустой строкой");
+                    //await client.SendTextMessageAsync(update.Message.Chat.Id, $"Cодержимое файла:\n```\n{Location.Replace("\\", "\\\\")}\n```\n не может быть отправлено, т.к. является пустой строкой",
+                    //    cancellationToken: token,
+                    //    replyToMessageId: update.Message.MessageId,
+                    //    parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
                 }
                 else
                 {
-                    await client.SendTextMessageAsync(update.Message.Chat.Id, $"Cодержимое файла:\n```\n{Location.Replace("\\", "\\\\")}\n```\n```\n{fileText.Replace("\\n", "\n")}\n```",
-                        cancellationToken: token,
-                        replyToMessageId: update.Message.MessageId,
-                        parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                    SendCustomMessage_API(client, update, token, $"Cодержимое файла:\n```\n{Location.Replace("\\", "\\\\")}\n```\n```\n{fileText.Replace("\\n", "\n")}\n```");
+                    //await client.SendTextMessageAsync(update.Message.Chat.Id, $"Cодержимое файла:\n```\n{Location.Replace("\\", "\\\\")}\n```\n```\n{fileText.Replace("\\n", "\n")}\n```",
+                    //    cancellationToken: token,
+                    //    replyToMessageId: update.Message.MessageId,
+                    //    parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
                 }
             }
             catch (Exception filereadException)
@@ -177,10 +170,11 @@ namespace AiaTelegramBot.TG_Bot.models
             {
                 string text = FileContent[CoreFunctions.GetRandom(0, FileContent.Count - 1)];
                 Console.WriteLine(text);
-                await client.SendTextMessageAsync(update.Message.Chat.Id,
-                    text,
-                    cancellationToken: token,
-                    replyToMessageId: update.Message.MessageId);
+                SendCustomMessage_API(client, update, token, text);
+                //await client.SendTextMessageAsync(update.Message.Chat.Id,
+                //    text,
+                //    cancellationToken: token,
+                //    replyToMessageId: update.Message.MessageId);
             }
         }
         protected async void GetRandomImage(ITelegramBotClient client, Telegram.Bot.Types.Update update, CancellationToken token, string? logPath = null)
@@ -188,6 +182,11 @@ namespace AiaTelegramBot.TG_Bot.models
             try
             {
                 if (update.Message == null) return;
+                if ((update.Message.Chat.Id == 0))
+                {
+                    BotLogger.Log("Не удалось выполнить команду, т.к. некуда отправлять результат!", LogLevels.ERROR, logPath);
+                    return;
+                }
                 List<string> images = Directory.EnumerateFiles(Location, "*.*", SearchOption.AllDirectories)
                     .Where(s => new List<string> { "jpg", "gif", "png", "jpeg" }
                     .Contains(Path.GetExtension(s).TrimStart('.').ToLowerInvariant()))
@@ -196,21 +195,32 @@ namespace AiaTelegramBot.TG_Bot.models
                 if (images.Count == 0)
                 {
                     BotLogger.Log($"В указанной директории нет картинок: \"{Location}\"", LogLevels.ERROR, logPath);
-                    await client.SendTextMessageAsync(update.Message.Chat.Id,
-                        $"В указанной директории нет картинок:\n```\n{Location}\n```\n",
-                        cancellationToken: token,
-                        replyToMessageId: update.Message.MessageId,
-                        parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                    SendCustomMessage_API(client, update, token, $"В указанной директории нет картинок:\n```\n{Location}\n```\n");
+                    //await client.SendTextMessageAsync(update.Message.Chat.Id,
+                    //    $"В указанной директории нет картинок:\n```\n{Location}\n```\n",
+                    //    cancellationToken: token,
+                    //    replyToMessageId: update.Message.MessageId,
+                    //    parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
                 }
                 else
                 {
                     string randomImagePath = images[CoreFunctions.GetRandom(0, images.Count - 1)];
                     await using Stream stream = System.IO.File.OpenRead(randomImagePath);
-                    var message = await client.SendPhotoAsync(update.Message.Chat.Id,
-                        Telegram.Bot.Types.InputFile.FromStream(stream, $"{GetFilename(randomImagePath)}"),
-                        caption: $"`{GetFilename(randomImagePath)}`",
-                        replyToMessageId: update.Message.MessageId,
-                        parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                    if (update.Message.MessageId == 0)
+                    {
+                        await client.SendPhotoAsync(update.Message.Chat.Id,
+                            Telegram.Bot.Types.InputFile.FromStream(stream, $"{GetFilename(randomImagePath)}"),
+                            caption: $"`{GetFilename(randomImagePath)}`",
+                            parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                    }
+                    else
+                    {
+                        await client.SendPhotoAsync(update.Message.Chat.Id,
+                            Telegram.Bot.Types.InputFile.FromStream(stream, $"{GetFilename(randomImagePath)}"),
+                            caption: $"`{GetFilename(randomImagePath)}`",
+                            replyToMessageId: update.Message.MessageId,
+                            parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                    }
                     BotLogger.Log($"Отправлена картинка \"{randomImagePath}\" в чат {update.Message.Chat.Id} (пользователь @{update.Message.From?.Username ?? "[не определено]"})",
                         LogLevels.SUCCESS, logPath);
                 }
@@ -219,11 +229,12 @@ namespace AiaTelegramBot.TG_Bot.models
             {
                 if (update.Message == null) return;
                 BotLogger.Log($"Не удалось получить файл \"{Filename}\":\n{TCPSendException.Message}", LogLevels.ERROR, logPath);
-                await client.SendTextMessageAsync(update.Message.Chat.Id,
-                    $"Не удалось получить файл \"{Filename}\":\n```\n{TCPSendException.Message}\n```",
-                    cancellationToken: token,
-                    replyToMessageId: update.Message.MessageId,
-                    parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                SendCustomMessage_API(client, update, token, $"Не удалось получить файл \"{Filename}\":\n```\n{TCPSendException.Message}\n```");
+                //await client.SendTextMessageAsync(update.Message.Chat.Id,
+                //    $"Не удалось получить файл \"{Filename}\":\n```\n{TCPSendException.Message}\n```",
+                //    cancellationToken: token,
+                //    replyToMessageId: update.Message.MessageId,
+                //    parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
             }
         }
         protected async void GetFile(ITelegramBotClient client, Telegram.Bot.Types.Update update, CancellationToken token, string? logPath = null, string? targetPath = null)
@@ -233,12 +244,27 @@ namespace AiaTelegramBot.TG_Bot.models
             try
             {
                 if (update.Message == null) return;
+                if ((update.Message.Chat.Id == 0))
+                {
+                    BotLogger.Log("Не удалось выполнить команду, т.к. некуда отправлять результат!", LogLevels.ERROR, logPath);
+                    return;
+                }
                 await using Stream stream = System.IO.File.OpenRead(path);
-                var message = await client.SendDocumentAsync(update.Message.Chat.Id,
-                    document: Telegram.Bot.Types.InputFile.FromStream(stream, $"{name?.Replace(".", "\\.")}"),
-                    caption: $"Файл `{(string.IsNullOrEmpty(name) ? "[скрыто]" : $"{Filename}")}`",
-                    replyToMessageId: update.Message.MessageId,
-                    parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                if (update.Message.MessageId == 0)
+                {
+                    await client.SendDocumentAsync(update.Message.Chat.Id,
+                        document: Telegram.Bot.Types.InputFile.FromStream(stream, $"{name?.Replace(".", "\\.")}"),
+                        caption: $"Файл `{(string.IsNullOrEmpty(name) ? "[скрыто]" : $"{Filename}")}`",
+                        parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                }
+                else
+                {
+                    await client.SendDocumentAsync(update.Message.Chat.Id,
+                        document: Telegram.Bot.Types.InputFile.FromStream(stream, $"{name?.Replace(".", "\\.")}"),
+                        caption: $"Файл `{(string.IsNullOrEmpty(name) ? "[скрыто]" : $"{Filename}")}`",
+                        replyToMessageId: update.Message.MessageId,
+                        parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                }
                 BotLogger.Log($"Отправлен файл \"{path}\" в чат {update.Message.Chat.Id} (пользователь {update.Message.From?.Username ?? "[не определено]"})",
                     LogLevels.SUCCESS, logPath);
             }
@@ -246,11 +272,12 @@ namespace AiaTelegramBot.TG_Bot.models
             {
                 if (update.Message == null) return;
                 BotLogger.Log($"Не удалось получить файл \"{Filename}\":\n{TCPSendException.Message}", LogLevels.ERROR, logPath);
-                await client.SendTextMessageAsync(update.Message.Chat.Id,
-                    $"Не удалось получить файл \"{Filename}\":\n```\n{TCPSendException.Message}\n```",
-                    cancellationToken: token,
-                    replyToMessageId: update.Message.MessageId,
-                    parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                SendCustomMessage_API(client, update, token, $"Не удалось получить файл \"{Filename}\":\n```\n{TCPSendException.Message}\n```");
+                //await client.SendTextMessageAsync(update.Message.Chat.Id,
+                //    $"Не удалось получить файл \"{Filename}\":\n```\n{TCPSendException.Message}\n```",
+                //    cancellationToken: token,
+                //    replyToMessageId: update.Message.MessageId,
+                //    parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
             }
         }
         protected async void RunScript(ITelegramBotClient client, Telegram.Bot.Types.Update update, CancellationToken token, string? logPath = null)
@@ -262,11 +289,8 @@ namespace AiaTelegramBot.TG_Bot.models
                 BotLogger.Log($"Команде \"{Keyword}\" не были переданы аргументы (опции к скрипту). Скрипт будет запущен без аргументов", LogLevels.WARNING, logPath);
             }
             BotLogger.Log($"Запуск скрипта по команде \"{Keyword}\":\n\t{Location.Replace("\\", "\\\\")} {args}", LogLevels.INFO, logPath);
+            SendCustomMessage_API(client, update, token, $"Запуск скрипта по команде `{Keyword}`:\n```\n{Filename ?? "нет имени файла"} {args}\n```");
 
-            await client.SendTextMessageAsync(update.Message.Chat.Id, $"Запуск скрипта по команде `{Keyword}`:\n```\n{Filename ?? "нет имени файла"} {args}\n```",
-                cancellationToken: token,
-                replyToMessageId: update.Message.MessageId,
-                parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
             string output = string.Empty;
             try
             {
@@ -298,9 +322,10 @@ namespace AiaTelegramBot.TG_Bot.models
                 process.CancelOutputRead();
                 if (string.IsNullOrEmpty(output))
                 {
-                    await client.SendTextMessageAsync(update.Message.Chat.Id, $"Команда \"{Keyword}\" завершилась, но не давала текстового вывода в терминал",
-                        cancellationToken: token,
-                        replyToMessageId: update.Message.MessageId);
+                    SendCustomMessage_API(client, update, token, $"Команда \"{Keyword}\" завершилась, но не давала текстового вывода в терминал");
+                    //await client.SendTextMessageAsync(update.Message.Chat.Id, $"Команда \"{Keyword}\" завершилась, но не давала текстового вывода в терминал",
+                    //    cancellationToken: token,
+                    //    replyToMessageId: update.Message.MessageId);
                     return;
                 }
                 if (SendFile)
@@ -311,21 +336,43 @@ namespace AiaTelegramBot.TG_Bot.models
                     }
                     else
                     {
-                        await client.SendTextMessageAsync(update.Message.Chat.Id, $"Невозможно отправить вывод, т.к. в конфигурации действия не указан путь к файлу (или путь является пустой строкой)",
-                            cancellationToken: token,
-                            replyToMessageId: update.Message.MessageId, parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                        SendCustomMessage_API(client, update, token, $"Невозможно отправить вывод, т.к. в конфигурации действия не указан путь к файлу (или путь является пустой строкой)");
+                        //await client.SendTextMessageAsync(update.Message.Chat.Id, $"Невозможно отправить вывод, т.к. в конфигурации действия не указан путь к файлу (или путь является пустой строкой)",
+                        //     cancellationToken: token,
+                        //     replyToMessageId: update.Message.MessageId, parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
                     }
                 }
                 else
                 {
-                    await client.SendTextMessageAsync(update.Message.Chat.Id, (UseParsing ? $"Результат выполнения скрипта:\n{output}" : $"Результат выполнения скрипта по команде \"{Keyword}\":\n```\n{output}\n```"),
-                    cancellationToken: token,
-                    replyToMessageId: update.Message.MessageId, parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                    SendCustomMessage_API(client, update, token, (UseParsing ? $"Результат выполнения скрипта:\n{output}" : $"Результат выполнения скрипта по команде \"{Keyword}\":\n```\n{output}\n```"));
+                    //await client.SendTextMessageAsync(update.Message.Chat.Id, (UseParsing ? $"Результат выполнения скрипта:\n{output}" : $"Результат выполнения скрипта по команде \"{Keyword}\":\n```\n{output}\n```"),
+                    //cancellationToken: token,
+                    //replyToMessageId: update.Message.MessageId, parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
                 }
             }
             catch (Exception proccessStartException)
             {
                 BotLogger.Log($"Произошла ошибка при запуске скрипта {Keyword}:\n{proccessStartException.Message}", LogLevels.ERROR, logPath);
+            }
+        }
+        protected async void SendCustomMessage_API(ITelegramBotClient client, Telegram.Bot.Types.Update update, CancellationToken token, string message)
+        {
+            if (update.Message == null || string.IsNullOrEmpty(message)) return;
+            if (update.Message.Chat.Id != 0)
+            {
+                if (update.Message.MessageId != 0)
+                {
+                    await client.SendTextMessageAsync(update.Message.Chat.Id, message,
+                        cancellationToken: token,
+                        replyToMessageId: update.Message.MessageId,
+                        parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                }
+                else
+                {
+                    await client.SendTextMessageAsync(update.Message.Chat.Id, message,
+                        cancellationToken: token,
+                        parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                }
             }
         }
         public async Task<bool> GetFileContent()
