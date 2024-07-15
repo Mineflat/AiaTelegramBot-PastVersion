@@ -32,10 +32,9 @@ namespace AiaTelegramBot.TG_Bot
                 APIListener = new HttpListener();
                 BotLogger.Log($"Запуск API на http://127.0.0.1:{RunningConfiguration.ApiPort}/", BotLogger.LogLevels.INFO, $"{RunningConfiguration.WorkingDirectory}/latest.log");
                 APIListener.Prefixes.Add($"http://127.0.0.1:{RunningConfiguration.ApiPort}/{BotID}/");
-                APIListener.Prefixes.Add($"http://localhost:{RunningConfiguration.ApiPort}/{BotID}/");
-                API_URI_FORMATTED_MD_STATUS = $"✅ API бота доступно по следующим адресам:\n```\nhttp://localhost:{RunningConfiguration.ApiPort}/{BotID}/\n```\n```\nhttp://localhost:{RunningConfiguration.ApiPort}/{BotID}/\n```";
+                API_URI_FORMATTED_MD_STATUS = $"✅ API бота доступно по следующему адресу:\n```\nhttp://127.0.0.1:{RunningConfiguration.ApiPort}/{BotID}/\n```";
                 APIListener.Start();
-                BotLogger.Log($"Успешно запущено API на http://127.0.0.1:{RunningConfiguration.ApiPort}/", BotLogger.LogLevels.SUCCESS, $"{RunningConfiguration.WorkingDirectory}/latest.log");
+                BotLogger.Log($"Успешно запущено API на http://127.0.0.1:{RunningConfiguration.ApiPort}/{BotID}/", BotLogger.LogLevels.SUCCESS, $"{RunningConfiguration.WorkingDirectory}/latest.log");
                 while (true)
                 {
                     HttpListenerContext context = await APIListener.GetContextAsync();
@@ -280,25 +279,21 @@ namespace AiaTelegramBot.TG_Bot
                                     {
                                         SendAndLogMessage(client, update, token, "К сожалению, на данный момент эта команда *не активна*",
                                             BotLogger.LogLevels.WARNING, $"{RunningConfiguration.WorkingDirectory}/latest.log");
-                                        statContiner.SentMessagesCount++;
                                         return;
                                     }
                                     BotLogger.Log($"Запущена команда администратора ({update.Message.From.Id}/{BotActions[i].Name})",
                                         BotLogger.LogLevels.INFO, $"{RunningConfiguration.WorkingDirectory}/latest.log");
                                     await BotActions[i].RunAction(client, update, token, $"{RunningConfiguration.WorkingDirectory}/latest.log");
-                                    statContiner.SentMessagesCount++;
                                     return;
                                 }
                                 SendAndLogMessage(client, update, token, $"Обнаружена попытка запуска команды администратора пользователем, который им не является: {update.Message.From.Id} (@{update.Message.From.Username}).\n" +
                                     $"`Этот инцидент будет отправлен на рассмотрение активным администраторам`", BotLogger.LogLevels.WARNING, $"{RunningConfiguration.WorkingDirectory}/latest.log");
-                                statContiner.SentMessagesCount++;
                                 return;
                             }
                             if (!BotActions[i].IsActive)
                             {
                                 SendAndLogMessage(client, update, token, "К сожалению, на данный момент эта команда *не активна*",
                                     BotLogger.LogLevels.WARNING, $"{RunningConfiguration.WorkingDirectory}/latest.log");
-                                statContiner.SentMessagesCount++;
                                 return;
                             }
 #pragma warning disable CS4014 // Так как этот вызов не ожидается, выполнение существующего метода продолжается до тех пор, пока вызов не будет завершен
@@ -313,17 +308,18 @@ namespace AiaTelegramBot.TG_Bot
 
                     foreach (var command in new string[]
                     {
-                        "/get config",
-                        "/get whitelist",
-                        "/update actions",
-                        "/update whitelist",
-                        "/update config",
+                        "/get-config",
+                        "/get-whitelist",
+                        "/update-actions",
+                        "/update-whitelist",
+                        "/update-config",
                         "/stats",
-                        "/get api",
-                        "/stop api",
-                        "/restart api",
-                        "/get action names",
-                        "/ping"
+                        "/get-api",
+                        "/stop-api",
+                        "/restart-api",
+                        "/action-names",
+                        "/ping",
+                        "/admin-help"
                     })
                     {
                         if (msg.ToLower().StartsWith(command.ToLower()))
@@ -334,29 +330,30 @@ namespace AiaTelegramBot.TG_Bot
                                     $"`Этот инцидент будет отправлен на рассмотрение активным администраторам`",
                                     BotLogger.LogLevels.WARNING,
                                     $"{RunningConfiguration.WorkingDirectory}/latest.log");
+                                statContiner.SentMessagesCount++;
                                 return;
                             }
                         }
                     }
                     if (update.Message == null) return;
+                    statContiner.SentMessagesCount++;
                     switch (msg.ToLower())
                     {
-                        case "/get actions":
+                        case "/get-actions":
                         case "/help":
-                            statContiner.SentMessagesCount++;
                             GetHelpMessage(client, update, token, userIsAdmin);
                             return;
-                        case "/get config":
+                        case "/get-config":
                             SendAndLogMessage(client, update, token, $"Актуальная конфигурация бота:\n{RunningConfiguration.GetBotConfiguration()}",
                                 BotLogger.LogLevels.WARNING,
                                 $"{RunningConfiguration.WorkingDirectory}/latest.log");
                             break;
-                        case "/get whitelist":
+                        case "/get-whitelist":
                             SendAndLogMessage(client, update, token, $"{RunningConfiguration.GetBotWhiteList()}",
                                 BotLogger.LogLevels.WARNING,
                                 $"{RunningConfiguration.WorkingDirectory}/latest.log");
                             break;
-                        case "/update actions":
+                        case "/update-actions":
                             if (!UpdateBotActions())
                             {
                                 SendAndLogMessage(client, update, token, $"Не удалось обновить список действий бота",
@@ -368,7 +365,7 @@ namespace AiaTelegramBot.TG_Bot
                                 BotLogger.LogLevels.WARNING,
                                 $"{RunningConfiguration.WorkingDirectory}/latest.log");
                             break;
-                        case "/update whitelist":
+                        case "/update-whitelist":
                             if (!RunningConfiguration.UpdateBotWhiteList())
                             {
                                 SendAndLogMessage(client, update, token, $"Не удалось обновить белый список бота",
@@ -380,7 +377,7 @@ namespace AiaTelegramBot.TG_Bot
                                 BotLogger.LogLevels.WARNING,
                                 $"{RunningConfiguration.WorkingDirectory}/latest.log");
                             break;
-                        case "/update config":
+                        case "/update-config":
                             if (!UpdateBotConfiguration())
                             {
                                 SendAndLogMessage(client, update, token, $"Не удалось обновить конфигурацию бота",
@@ -393,22 +390,26 @@ namespace AiaTelegramBot.TG_Bot
                                 $"{RunningConfiguration.WorkingDirectory}/latest.log");
                             break;
                         case "/stats":
-                            SendAndLogMessage(client, update, token, $"{statContiner.GetBotStats()}",
-                            BotLogger.LogLevels.COMMAND,
-                            $"{RunningConfiguration.WorkingDirectory}/latest.log");
+                            await client.SendTextMessageAsync(update.Message.Chat.Id, $"{statContiner.GetBotStats()}",
+                                cancellationToken: token,
+                                replyToMessageId: update.Message.MessageId,
+                                parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                            //SendAndLogMessage(client, update, token, $"{statContiner.GetBotStats()}",
+                            //BotLogger.LogLevels.COMMAND,
+                            //$"{RunningConfiguration.WorkingDirectory}/latest.log");
                             break;
-                        case "/get api":
+                        case "/get-api":
                             SendAndLogMessage(client, update, token, $"{API_URI_FORMATTED_MD_STATUS}",
                             BotLogger.LogLevels.COMMAND,
                             $"{RunningConfiguration.WorkingDirectory}/latest.log");
                             break;
-                        case "/stop api":
+                        case "/stop-api":
                             SendAndLogMessage(client, update, token, "Инициирую *остановку* сервиса API...",
                                 BotLogger.LogLevels.COMMAND,
                                 $"{RunningConfiguration.WorkingDirectory}/latest.log");
                             StopApi();
                             break;
-                        case "/restart api":
+                        case "/restart-api":
                             SendAndLogMessage(client, update, token, "Инициирую *перезапуск* сервиса API...",
                                 BotLogger.LogLevels.COMMAND,
                                 $"{RunningConfiguration.WorkingDirectory}/latest.log");
@@ -417,8 +418,8 @@ namespace AiaTelegramBot.TG_Bot
                             RestartAPI();
                             await Task.Delay(1000);
                             RestartAPI();
-                            break; 
-                        case "/get action names":
+                            break;
+                        case "/action-names":
                             string replyMsg = $"Список всех действий, о которых знает бот:\n";
                             BotActions.ForEach(x => replyMsg += $"✅ {(string.IsNullOrEmpty(x.Name) ? "[пусто]\n" : $"{x.Name}\n")}");
                             await client.SendTextMessageAsync(update.Message.Chat.Id, replyMsg,
@@ -431,6 +432,70 @@ namespace AiaTelegramBot.TG_Bot
                                 cancellationToken: token,
                                 replyToMessageId: update.Message.MessageId,
                                 parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                            break;
+                        case "/admin-help":
+                            /* 
+                             await client.SendTextMessageAsync(update.Message.Chat.Id,
+                                "⚙️ /help\n" +
+                                "Получить список доступных действий\n" +
+                                "⚙️ /get_actions\n" +
+                                "То же самое, что и help\n" +
+                                "⚙️ /get_config\n" +
+                                "Получить конфигурацию бота в нный момент\n" +
+                                "⚙️ /get_whitelist\n" +
+                                "Получить список идентификаторов администраторов бота (Telegram User ID)\n" +
+                                "⚙️ /update_actions\n" +
+                                "Обновить список доступных действий\n" +
+                                "⚙️ /update_whitelist\n" +
+                                "Обновить список идентификаторов администраторов бота (Telegram User ID)\n" +
+                                "⚙️ /update_config\n" +
+                                "Обновить конфигурацию бота\n" +
+                                "⚙️ /ping\n" +
+                                "Если бот жив, он ответит: *PONG*\n" +
+                                "⚙️ /stats\n" +
+                                "Получить статистику по количеству сообщений, обработанных ботом, включая запросы к API\n" +
+                                "⚙️ /get_api\n" +
+                                "Получить строку подключения к API, если оно активировано и работает\n" +
+                                "⚙️ /stop_api\n" +
+                                "Остановить API-сервис бота, если тот запущен\n" +
+                                "⚙️ /restart_api\n" +
+                                "Попытаться перезапустить API-сервис бота\n" +
+                                "⚙️ /action_names\n" +
+                                "Получить список всех действий по их именам",
+                                cancellationToken: token,
+                                replyToMessageId: update.Message.MessageId);
+                            */
+                            await client.SendTextMessageAsync(update.Message.Chat.Id,
+                                "⚙️ `/help`\n" +
+                                "Получить список доступных действий\n" +
+                                "⚙️ `/get-actions`\n" +
+                                "То же самое, что и help\n" +
+                                "⚙️ `/get-config`\n" +
+                                "Получить конфигурацию бота в нный момент\n" +
+                                "⚙️ `/get-whitelist`\n" +
+                                "Получить список идентификаторов администраторов бота (Telegram User ID)\n" +
+                                "⚙️ `/update-actions`\n" +
+                                "Обновить список доступных действий\n" +
+                                "⚙️ `/update-whitelist`\n" +
+                                "Обновить список идентификаторов администраторов бота (Telegram User ID)\n" +
+                                "⚙️ `/update-config`\n" +
+                                "Обновить конфигурацию бота\n" +
+                                "⚙️ `/ping`\n" +
+                                "Если бот жив, он ответит: *PONG*\n" +
+                                "⚙️ `/stats`\n" +
+                                "Получить статистику по количеству сообщений, обработанных ботом, включая запросы к API\n" +
+                                "⚙️ `/get-api`\n" +
+                                "Получить строку подключения к API, если оно активировано и работает\n" +
+                                "⚙️ `/stop-api`\n" +
+                                "Остановить API-сервис бота, если тот запущен\n" +
+                                "⚙️ `/restart-api`\n" +
+                                "Попытаться перезапустить API-сервис бота\n" +
+                                "⚙️ `/action-names`\n" +
+                                "Получить список всех действий по их именам",
+                                cancellationToken: token,
+                                replyToMessageId: update.Message.MessageId,
+                                parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                            statContiner.SentMessagesCount++;
                             break;
                     }
                     break;
@@ -455,6 +520,7 @@ namespace AiaTelegramBot.TG_Bot
                 cancellationToken: token,
                 replyToMessageId: update.Message.MessageId,
                 parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+            if (statContiner != null) statContiner.SentMessagesCount++;
         }
         protected void Log(object? message, BotLogger.LogLevels logLevel, bool firstStartup = false)
         {

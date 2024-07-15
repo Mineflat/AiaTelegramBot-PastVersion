@@ -24,27 +24,26 @@ namespace AiaTelegramBot.TG_Bot.models
 
         public string GetBotStats()
         {
-            Console.WriteLine(1);
-            if (ReceivedMessagesCount == 0)
+            string statsMessage = $"`Статистика`\n" +
+                    $"✖️ *Имя бота:* {BotName}\n" + // 42
+                    $"✖️ *Идентификатор бота:*\n```\n{BotID}\n```\n" +
+                    $"✖️ *Время запуска:* {StartTime.ToLocalTime()}\n" +
+                    $"✖️ *Обновлений получено:* {ReceivedUpdatesCount}\n" +
+                    $"✖️ *Сообщений получено:* {ReceivedMessagesCount}\n" +
+                    $"✖️ *Сообщений отправлено:* {SentMessagesCount}\n" +
+                    $"✖️ *Соотношение сообщений (отправлено/получено):* 0";
+            if (ReceivedMessagesCount != 0)
             {
-                return $"`Статистика`" +
-                    $"    - *Имя бота:* {BotName}\n" +
-                    $"    - *Идентификатор бота:* {BotID}\n" +
-                    $"    - *Время запуска:* {StartTime.ToLocalTime()}\n" +
-                    $"    - *Обновлений получено:* {ReceivedUpdatesCount}\n" +
-                    $"    - *Сообщений получено:* {ReceivedMessagesCount}\n" +
-                    $"    - *Сообщений отправлено:* {SentMessagesCount}\n" +
-                    $"    - *Соотношение сообщений (отправлено/получено):* 0";
+                statsMessage = $"`Статистика`\n" +
+                $"✖️ *Имя бота:* {BotName}\n" +
+                $"✖️ *Идентификатор бота:*\n```\n{BotID}\n```\n" +
+                $"✖️ *Время запуска:* {StartTime.ToLocalTime()}\n" +
+                $"✖️ *Обновлений получено:* {ReceivedUpdatesCount}\n" +
+                $"✖️ *Сообщений получено:* {ReceivedMessagesCount}\n" +
+                $"✖️ *Сообщений отправлено:* {SentMessagesCount}\n" +
+                $"✖️ *Соотношение сообщений (отправлено/получено):* {SentMessagesCount / ReceivedMessagesCount}";
             }
-            Console.WriteLine(SentMessagesCount / ReceivedMessagesCount);
-            return $"`Статистика`\n" +
-                $"    - *Имя бота:* {BotName}\n" +
-                $"    - *Идентификатор бота:* {BotID}\n" +
-                $"    - *Время запуска:* {StartTime.ToLocalTime()}\n" +
-                $"    - *Обновлений получено:* {ReceivedUpdatesCount}\n" +
-                $"    - *Сообщений получено:* {ReceivedMessagesCount}\n" +
-                $"    - *Сообщений отправлено:* {SentMessagesCount}\n" +
-                $"    - *Соотношение сообщений (отправлено/получено):* {SentMessagesCount / ReceivedMessagesCount}";
+            return statsMessage.Replace("_", "\\_");
         }
     }
 }
