@@ -8,17 +8,113 @@ using Polly;
 using Newtonsoft.Json.Linq;
 using static System.Net.Mime.MediaTypeNames;
 using AiaTelegramBot.API;
+using System.Net;
+using System.Text;
 
 namespace AiaTelegramBot.TG_Bot
 {
     internal class BotEntity
     {
+        #region API
+        private HttpListener? APIListener;
+        protected async void StartAPI()
+        {
+            try
+            {
+                APIListener = new HttpListener();
+                BotLogger.Log($"Запуск API на http://127.0.0.1:{RunningConfiguration.ApiPort}/", BotLogger.LogLevels.INFO, $"{RunningConfiguration}/latest.log");
+                APIListener.Prefixes.Add($"http://127.0.0.1:{RunningConfiguration.ApiPort}/");
+                APIListener.Prefixes.Add($"http://localhost:{RunningConfiguration.ApiPort}/");
+                APIListener.Start();
+                BotLogger.Log($"Успешно запущено API на http://127.0.0.1:{RunningConfiguration.ApiPort}/", BotLogger.LogLevels.SUCCESS, $"{RunningConfiguration}/latest.log");
+                while (true)
+                {
+                    BotLogger.Log($"Получено новое сообщение", BotLogger.LogLevels.INFO, $"{RunningConfiguration}/latest.log");
+                    HttpListenerContext context = await APIListener.GetContextAsync();
+                    HttpListenerRequest req = context.Request;
+                    string requestedActionLine = Extract(req);
+                    string ErrorMessage = "{\"Started\":\"true\", \"error\": \"OK\"}";
+                    if (!string.IsNullOrEmpty(requestedActionLine))
+                    {
+                        APIRequestEntity? RE = JsonConvert.DeserializeObject<APIRequestEntity>(requestedActionLine);
+                        if (RE != null)
+                        {
+                            if (string.IsNullOrEmpty(RE.ActionName)) ErrorMessage = "{\"Started\":\"false\", \"error\": \"Невозможно выполнить действие: не было передано имени действия\"}";
+                            else
+                            {
+                                BotAction? targetAction = BotActions.FirstOrDefault(x => x.Name?.ToLower() == RE.ActionName?.ToLower());
+                                if (targetAction == null) ErrorMessage = "{\"Started\":\"false\", \"error\": \"Не удалось найти указанное действие в списке действий\"}";
+                                else
+                                {
+                                    await targetAction.RunApiAction(botClient, cancellationToken.Token, RE.ChatID, RE.Args);
+                                }
+                            }
+                        }
+                    }
+
+                    using HttpListenerResponse resp = context.Response;
+                    resp.Headers.Set("Content-Type", "text/plain");
+
+                    byte[] buffer = Encoding.UTF8.GetBytes(ErrorMessage);
+                    resp.ContentLength64 = buffer.Length;
+
+                    using Stream ros = resp.OutputStream;
+                    ros.Write(buffer, 0, buffer.Length);
+                }
+                //APIListener = new TcpListener(IPAddress.Any, Port);
+                //APIListener.Start();
+                //while (true)
+                //{
+                //    var tcpClient = await APIListener.AcceptTcpClientAsync();
+                //    ProcessClientAsync(tcpClient);
+                //}
+            }
+            catch (Exception tcpListenerException)
+            {
+                BotLogger.Log($"Ошибка при запуске сервиса API:\n{tcpListenerException.Message}", BotLogger.LogLevels.ERROR, $"{RunningConfiguration}/latest.log");
+            }
+            finally
+            {
+                StopApi();
+            }
+        }
+        protected void RestartAPI()
+        {
+            if (RunningConfiguration.IsApiEnabled)
+            {
+                StopApi();
+                StartAPI();
+            }
+        }
+        protected void StopApi()
+        {
+            if (APIListener != null)
+            {
+                APIListener.Stop();
+                APIListener.Close();
+                APIListener = null;
+                BotLogger.Log($"Сервис API остановлен", BotLogger.LogLevels.SUCCESS, $"{RunningConfiguration}/latest.log");
+                return;
+            }
+            BotLogger.Log($"Сервис API не может быть остановлен, т.к. не работает", BotLogger.LogLevels.INFO, $"{RunningConfiguration}/latest.log");
+        }
+        public static string Extract(HttpListenerRequest message)
+        {
+            using (var reader = new StreamReader(message.InputStream))
+            {
+                string jsonString = reader.ReadToEnd();
+                return jsonString;
+            }
+        }
+
+        #endregion
+
+        #region BOT
         public string? BotID { get; protected set; } = string.Empty;
         public string? BotName { get; protected set; } = string.Empty;
         protected StatUnit? statContiner = null;
         public static List<BotAction> BotActions = new List<BotAction>();
         public static List<string> WhiteList = new List<string>();
-        protected BotAPIEntity? APIEntity = null;
         protected BotConfigurationUnit RunningConfiguration = new BotConfigurationUnit()
         {
             StoreConversationStory = false,
@@ -105,11 +201,12 @@ namespace AiaTelegramBot.TG_Bot
                 Log($"Успешно запущен бот {BotName}!", BotLogger.LogLevels.SUCCESS);
                 Log($"Идентификатор бота: {BotID}", BotLogger.LogLevels.INFO);
                 // Запуск API
-                if (RunningConfiguration.IsApiEnabled)
-                {
-                    APIEntity = new BotAPIEntity(RunningConfiguration.ApiPort, $"{RunningConfiguration.WorkingDirectory}/latest.log", botClient, cancellationToken);
-                    APIEntity.Listen();
-                }
+                RestartAPI();
+                //if (RunningConfiguration.IsApiEnabled) 
+                //{
+                //    //APIEntity = new BotAPIEntity(RunningConfiguration.ApiPort, $"{RunningConfiguration.WorkingDirectory}/latest.log", botClient, cancellationToken);
+                //    //APIEntity.Listen();
+                //}
             }
             catch (ApiRequestException botStartException)
             {
@@ -389,6 +486,7 @@ namespace AiaTelegramBot.TG_Bot
                         Log($"Не удалось прочитать конфигурацию из файла \"{AppDomain.CurrentDomain.BaseDirectory}config.json\". \n\tПроверьте правильность структуры файла и повторите попытку", BotLogger.LogLevels.CRITICAL);
                         return false;
                     }
+                    if (RunningConfiguration.IsApiEnabled) RestartAPI();
                     RunningConfiguration = targetUnit;
                     Log($"Успешно применена следующая конфигурация бота:\n{RunningConfiguration.GetBotConfiguration()}", BotLogger.LogLevels.SUCCESS);
                     return true;
@@ -454,5 +552,6 @@ namespace AiaTelegramBot.TG_Bot
                                 replyToMessageId: update.Message.MessageId,
                                 parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
         }
+        #endregion
     }
 }

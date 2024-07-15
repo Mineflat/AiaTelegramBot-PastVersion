@@ -71,7 +71,7 @@ namespace AiaTelegramBot.TG_Bot.models
             bool storeConversationStory = false,
             bool storeNewUsernames = false,
             bool storeLogs = false,
-            string? actionsDirectory = "")
+            string? actionsDirectory = "", ushort apiPort = 3200, bool isApiEnabled = false)
         {
             WorkingDirectory = workingDirectory;
             WhitelistLocation = whitelistLocation;
@@ -79,6 +79,8 @@ namespace AiaTelegramBot.TG_Bot.models
             StoreNewUsernames = storeNewUsernames;
             StoreLogs = storeLogs;
             ActionsDirectory = actionsDirectory;
+            ApiPort = apiPort;
+            IsApiEnabled = isApiEnabled;
             UpdateBotWhiteList();
         }
 
@@ -152,7 +154,9 @@ namespace AiaTelegramBot.TG_Bot.models
                 $"⚙️ *Сохранять историю переписки:* `{StoreConversationStory}`\n" +
                 $"⚙️ *Сохранять идентификаторы новых пользователей:* `{StoreNewUsernames}`\n" +
                 $"⚙️ *Запись лога в файл:* `{StoreLogs}`\n" +
-                $"⚙️ *Директория действий бота:*\n```\n{ActionsDirectory}\n```\n";
+                $"⚙️ *Директория действий бота:*\n```\n{ActionsDirectory}\n```\n" +
+                $"⚙️ *API разрешено:* `{IsApiEnabled}`\n" +
+                $"⚙️ *Порт API:* `{ApiPort}`";
         }
     }
 }

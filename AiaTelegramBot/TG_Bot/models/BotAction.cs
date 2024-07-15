@@ -66,8 +66,15 @@ namespace AiaTelegramBot.TG_Bot.models
             }
             return null;
         }
-        public async Task RunApiAction(ITelegramBotClient client, CancellationToken token, string? logPath = null)
+        //public async Task RunApiAction(ITelegramBotClient client, CancellationToken token, string? logPath = null)
+        public async Task RunApiAction(ITelegramBotClient? client, CancellationToken token, long chatID, string? args)
         {
+            if(client == null) return;
+            if(chatID != 0)
+            {
+                await client.SendTextMessageAsync()
+            }
+            await Console.Out.WriteLineAsync($"Выполнено действие:\n{GetActionInfo()}");
 
         }
         public async Task RunAction(ITelegramBotClient client, Telegram.Bot.Types.Update update, CancellationToken token, string? logPath = null)
