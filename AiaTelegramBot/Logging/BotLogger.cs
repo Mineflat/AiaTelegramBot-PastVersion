@@ -14,7 +14,7 @@ namespace AiaTelegramBot.Logging
         }
         public static void Log(string message, LogLevels logLevel, string? location = null)
         {
-            string timestamp = DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss:fffffff");  
+            string timestamp = DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss:fffffff");
             switch (logLevel)
             {
                 case LogLevels.CRITICAL:

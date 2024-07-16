@@ -13,7 +13,6 @@ namespace AiaTelegramBot.API
         public string ActionName {  get; set; }
         public long ChatID { get; set; } = 0;
         public string? Args {  get; set; } = null;
-
         public APIRequestEntity(string actionName, long chatID, string? args)
         {
             ActionName = actionName;

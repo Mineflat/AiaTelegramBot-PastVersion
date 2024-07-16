@@ -14,14 +14,12 @@ namespace AiaTelegramBot.TG_Bot.models
         public double ReceivedUpdatesCount { get; set; } = 0;
         public double ReceivedMessagesCount { get; set; } = 0;
         public double SentMessagesCount { get; set; } = 0;
-
         public StatUnit(string? botName, string? botID, DateTime startTime)
         {
             BotName = string.IsNullOrEmpty(botName) ? "(не определено)": botName;
             BotID = string.IsNullOrEmpty(botID) ? "(не определено)" : botID; 
             StartTime = startTime;
         }
-
         public string GetBotStats()
         {
             string statsMessage = $"`Статистика`\n" +

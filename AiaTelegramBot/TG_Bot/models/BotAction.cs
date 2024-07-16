@@ -29,31 +29,42 @@ namespace AiaTelegramBot.TG_Bot.models
         public bool LogOutput { get; set; } = true;
         public bool IsAdmin { get; set; } = true;
         public string ActionType = string.Empty;
-        public string Location = string.Empty;
+        public string? Location = string.Empty;
         public string? Filename = string.Empty;
         public bool SendFile = false;
         public string? FilePath = null;
         public string? TargetID { get; set; } = string.Empty;
         public string? TargetMessage { get; set; } = string.Empty;
-
         protected List<string> FileContent = new List<string>();
-        public BotAction(string name, string keyword, bool isActive, bool isAdmin, string actionType, string location)
+        public BotAction(string name, string keyword, bool isActive, bool isAdmin, string actionType, string location, string targetID, string? targetMessage)
         {
             // Прости господи меня за такой код...
             if (string.IsNullOrEmpty(name)) throw new Exception("Поле name не может быть пустым");
             if (string.IsNullOrEmpty(keyword)) throw new Exception("Поле keyword не может быть пустым");
             if (string.IsNullOrEmpty(actionType)) throw new Exception("Поле actionType не может быть пустым");
-            if (string.IsNullOrEmpty(location)) throw new Exception("Поле location не может быть пустым");
             // Господь простил :) 
             Name = name;
             Keyword = keyword;
             IsActive = isActive;
             IsAdmin = isAdmin;
             ActionType = actionType;
-            if (!(System.IO.File.Exists(location) || System.IO.Directory.Exists(location))) throw new Exception($"Файл или директория, указанная в поле location, не существует ({name})");
-            //if (!CanGetFileContent()) throw new Exception("Файл, указанный в поле location, не может быть прочитан или пуст");
-            Location = location;
-            Filename = GetFilename(Location);
+            if (string.IsNullOrEmpty(targetID) || string.IsNullOrEmpty(targetMessage))
+            {
+                if (!string.IsNullOrEmpty(location))
+                    if (!(System.IO.File.Exists(location) || System.IO.Directory.Exists(location)))
+                    {
+                        throw new Exception($"Файл или директория, указанная в поле location, не существует ({name})");
+
+                    }
+                    else
+                    {
+                        Location = location;
+                        Filename = GetFilename(Location);
+                    }
+                return;
+            }
+            TargetMessage = targetMessage;
+            TargetID = targetID;
         }
         public static string? GetFilename(string location)
         {
@@ -118,13 +129,13 @@ namespace AiaTelegramBot.TG_Bot.models
             if (long.TryParse(TargetID, out long chat_id))
             {
                 string? reply = $"{(string.IsNullOrEmpty(TargetMessage) ? $"{GetArgs(update.Message.Text)}" : $"{TargetMessage}")}";
-                if (string.IsNullOrEmpty(reply))
+                if (!string.IsNullOrEmpty(reply))
                 {
-                    SendCustomMessage_API(client, update, token, reply);
-                    //await client.SendTextMessageAsync(chat_id,
-                    //    reply,
-                    //    cancellationToken: token,
-                    //    parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                    //SendCustomMessage_API(client, update, token, reply);
+                    await client.SendTextMessageAsync(chat_id,
+                        reply,
+                        cancellationToken: token,
+                        parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
                     return;
                 }
                 BotLogger.Log($"Не удалось отправить сообщение пользователю {TargetID} - пустое сообщение и, при этом, не заполнен параметр TargetMessage ", LogLevels.ERROR, logPath);
@@ -133,7 +144,7 @@ namespace AiaTelegramBot.TG_Bot.models
         }
         protected async void GetFileText(ITelegramBotClient client, Telegram.Bot.Types.Update update, CancellationToken token, string? logPath = null)
         {
-            if (update.Message == null) return;
+            if (update.Message == null || string.IsNullOrEmpty(Location)) return;
             try
             {
                 string fileText = System.IO.File.ReadAllText(Location, Encoding.UTF8);
@@ -141,18 +152,10 @@ namespace AiaTelegramBot.TG_Bot.models
                 {
                     BotLogger.Log($"Cодержимое файла \"{Location.Replace("\\", "\\\\")}\" является пустой строкой", LogLevels.ERROR, logPath);
                     SendCustomMessage_API(client, update, token, $"Cодержимое файла:\n```\n{Location.Replace("\\", "\\\\")}\n```\n не может быть отправлено, т.к. является пустой строкой");
-                    //await client.SendTextMessageAsync(update.Message.Chat.Id, $"Cодержимое файла:\n```\n{Location.Replace("\\", "\\\\")}\n```\n не может быть отправлено, т.к. является пустой строкой",
-                    //    cancellationToken: token,
-                    //    replyToMessageId: update.Message.MessageId,
-                    //    parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
                 }
                 else
                 {
-                    SendCustomMessage_API(client, update, token, $"Cодержимое файла:\n```\n{Location.Replace("\\", "\\\\")}\n```\n```\n{fileText.Replace("\\n", "\n")}\n```");
-                    //await client.SendTextMessageAsync(update.Message.Chat.Id, $"Cодержимое файла:\n```\n{Location.Replace("\\", "\\\\")}\n```\n```\n{fileText.Replace("\\n", "\n")}\n```",
-                    //    cancellationToken: token,
-                    //    replyToMessageId: update.Message.MessageId,
-                    //    parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                    SendCustomMessage_API(client, update, token, $"{fileText}");
                 }
             }
             catch (Exception filereadException)
@@ -344,7 +347,7 @@ namespace AiaTelegramBot.TG_Bot.models
                 }
                 else
                 {
-                    SendCustomMessage_API(client, update, token, (UseParsing ? $"Результат выполнения скрипта:\n{output}" : $"Результат выполнения скрипта по команде \"{Keyword}\":\n```\n{output}\n```"));
+                    SendCustomMessage_API(client, update, token, (UseParsing ? $"{(string.IsNullOrEmpty(output) ? "[пустой вывод]" : output)}" : $"Результат выполнения скрипта по команде \"{Keyword}\":\n```\n{output}\n```"));
                     //await client.SendTextMessageAsync(update.Message.Chat.Id, (UseParsing ? $"Результат выполнения скрипта:\n{output}" : $"Результат выполнения скрипта по команде \"{Keyword}\":\n```\n{output}\n```"),
                     //cancellationToken: token,
                     //replyToMessageId: update.Message.MessageId, parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
@@ -362,16 +365,34 @@ namespace AiaTelegramBot.TG_Bot.models
             {
                 if (update.Message.MessageId != 0)
                 {
-                    await client.SendTextMessageAsync(update.Message.Chat.Id, message,
+                    if (UseParsing)
+                    {
+                        await client.SendTextMessageAsync(update.Message.Chat.Id, message,
                         cancellationToken: token,
                         replyToMessageId: update.Message.MessageId,
                         parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                    }
+                    else
+                    {
+                        await client.SendTextMessageAsync(update.Message.Chat.Id, message,
+                            cancellationToken: token,
+                            replyToMessageId: update.Message.MessageId);
+                    }
+
                 }
                 else
                 {
-                    await client.SendTextMessageAsync(update.Message.Chat.Id, message,
-                        cancellationToken: token,
-                        parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                    if (UseParsing)
+                    {
+                        await client.SendTextMessageAsync(update.Message.Chat.Id, message,
+                            cancellationToken: token,
+                            parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                    }
+                    else
+                    {
+                        await client.SendTextMessageAsync(update.Message.Chat.Id, message,
+                            cancellationToken: token);
+                    }
                 }
             }
         }

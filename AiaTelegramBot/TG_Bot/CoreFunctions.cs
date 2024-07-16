@@ -25,7 +25,7 @@ namespace AiaTelegramBot.TG_Bot
                 sb.Append(b.ToString("X2"));
             return sb.ToString();
         }
-        public static int GetRandom(int  minValue, int maxValue)
+        public static int GetRandom(int minValue, int maxValue)
         {
             int randomValue = 0;
             if (minValue < maxValue)
