@@ -54,6 +54,7 @@ namespace AiaTelegramBot.TG_Bot.models
         public bool IsApiEnabled { get; protected set; } = false;
         //public string ApiKey { get; protected set; } = string.Empty;
         public string? LogPath { get; protected set; } = string.Empty;
+        public string? EnvPath { get; protected set; } = string.Empty;
 
         #region По командам 
         // Список команд администратора:
@@ -82,8 +83,47 @@ namespace AiaTelegramBot.TG_Bot.models
             ApiPort = apiPort;
             IsApiEnabled = isApiEnabled;
             UpdateBotWhiteList();
+            ExportEnvVars();
         }
 
+        public bool ExportEnvVars()
+        {
+            try
+            {
+                if (File.Exists(EnvPath))
+                {
+                    BotLogger.Log($"Экспорт переменных окруженя из файла {EnvPath}...", BotLogger.LogLevels.INFO, LogPath);
+                    List<string> lines = File.ReadLines(EnvPath).ToList();
+                    string[] buffer;
+                    if (lines.Count > 0)
+                    {
+                        for (int i = 0; i < lines.Count; i++)
+                        {
+                            if (!string.IsNullOrEmpty(lines[i])) continue;
+                            buffer = lines[i].Split('=');
+                            if ((buffer.Length == 2) && (!string.IsNullOrEmpty(buffer[0])) && (!string.IsNullOrEmpty(buffer[1])))
+                            {
+                                try
+                                {
+                                    Environment.SetEnvironmentVariable(buffer[0], buffer[1]);
+                                }
+                                catch (Exception setEnvError)
+                                {
+                                    BotLogger.Log($"Ошибка экспорта переменной окружения: {setEnvError.Message} пуст", BotLogger.LogLevels.WARNING, LogPath);
+                                }
+                            }
+                        }
+                        return true;
+                    }
+                    BotLogger.Log($"Ошибка экспорта переменных окруженя - файл {EnvPath} пуст", BotLogger.LogLevels.WARNING, LogPath);
+                }
+            }
+            catch (Exception e)
+            {
+                BotLogger.Log($"Ошибка экспорта переменных окруженя из файла {EnvPath}: {e.Message}", BotLogger.LogLevels.ERROR, LogPath);
+            }
+            return false;
+        }
         public bool UpdateBotWhiteList()
         {
             if (!File.Exists(WhitelistLocation))
@@ -111,15 +151,15 @@ namespace AiaTelegramBot.TG_Bot.models
                         {
                             if (long.TryParse(UUID, out _))
                             {
-                                BotLogger.Log($"Добавлен пользователь с идентификатором {UUID}", 
-                                    BotLogger.LogLevels.INFO, 
+                                BotLogger.Log($"Добавлен пользователь с идентификатором {UUID}",
+                                    BotLogger.LogLevels.INFO,
                                     $"{WorkingDirectory}/latest.log");
                                 Whitelist.Add(UUID);
                             }
                             else
                             {
-                                BotLogger.Log($"Пользователь с идентификатором \"{UUID}\" не может быть добавлен (нечисловой идентификатор)", 
-                                    BotLogger.LogLevels.ERROR, 
+                                BotLogger.Log($"Пользователь с идентификатором \"{UUID}\" не может быть добавлен (нечисловой идентификатор)",
+                                    BotLogger.LogLevels.ERROR,
                                     $"{WorkingDirectory}/latest.log");
                             }
                         }
@@ -139,11 +179,11 @@ namespace AiaTelegramBot.TG_Bot.models
         }
         public string GetBotWhiteList()
         {
-            if(Whitelist.Count > 0)
+            if (Whitelist.Count > 0)
             {
                 string whitelist_buffer = "Белый список бота:\n";
                 Whitelist.ForEach(x => whitelist_buffer += $"`{x}`\n");
-                return whitelist_buffer;    
+                return whitelist_buffer;
             }
             return "Белый список пуст. Команды администратора не выполняются";
         }

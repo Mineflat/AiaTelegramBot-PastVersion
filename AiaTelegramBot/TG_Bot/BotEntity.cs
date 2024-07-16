@@ -10,6 +10,7 @@ using static System.Net.Mime.MediaTypeNames;
 using AiaTelegramBot.API;
 using System.Net;
 using System.Text;
+using System.Collections;
 
 namespace AiaTelegramBot.TG_Bot
 {
@@ -92,10 +93,10 @@ namespace AiaTelegramBot.TG_Bot
         }
         protected void RestartAPI()
         {
+            BotLogger.Log($"Сервис API перезапускается...", BotLogger.LogLevels.INFO, $"{RunningConfiguration}/latest.log");
+            StopApi();
             if (RunningConfiguration.IsApiEnabled)
             {
-                BotLogger.Log($"Сервис API перезапускается...", BotLogger.LogLevels.INFO, $"{RunningConfiguration}/latest.log");
-                StopApi();
                 StartAPI();
             }
         }
@@ -319,7 +320,8 @@ namespace AiaTelegramBot.TG_Bot
                         "/restart-api",
                         "/action-names",
                         "/ping",
-                        "/admin-help"
+                        "/admin-help",
+                        "/update-env"
                     })
                     {
                         if (msg.ToLower().StartsWith(command.ToLower()))
@@ -433,6 +435,22 @@ namespace AiaTelegramBot.TG_Bot
                                 replyToMessageId: update.Message.MessageId,
                                 parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
                             break;
+                        case "/update-env":
+                            if (!RunningConfiguration.ExportEnvVars())
+                            {
+                                SendAndLogMessage(client, update, token, $"Не удалось обновить список переменных окружения бота",
+                                    BotLogger.LogLevels.WARNING,
+                                    $"{RunningConfiguration.WorkingDirectory}/latest.log");
+                                return;
+                            }
+                            string envList = string.Empty;
+                            foreach (DictionaryEntry de in Environment.GetEnvironmentVariables())
+                                envList += $"{de.Key} = {de.Value}";
+                            SendAndLogMessage(client, update, token, $"Список переменных окружения бота успешно обновлен:\n{envList}",
+                                BotLogger.LogLevels.SUCCESS,
+                                $"{RunningConfiguration.WorkingDirectory}/latest.log");
+                            break;
+
                         case "/admin-help":
                             /* 
                              await client.SendTextMessageAsync(update.Message.Chat.Id,
