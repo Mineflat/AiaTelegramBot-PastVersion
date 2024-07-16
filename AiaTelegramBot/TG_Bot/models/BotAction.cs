@@ -243,7 +243,7 @@ namespace AiaTelegramBot.TG_Bot.models
         protected async void GetFile(ITelegramBotClient client, Telegram.Bot.Types.Update update, CancellationToken token, string? logPath = null, string? targetPath = null)
         {
             string path = $"{(string.IsNullOrEmpty(targetPath) ? $"{Location}" : $"{targetPath}")}";
-            string name = $"{(string.IsNullOrEmpty(targetPath) ? "result.txt" : $"{Filename}")}";
+            string name = $"{(string.IsNullOrEmpty(Filename) ? "result.txt" : $"{Filename}")}";
             try
             {
                 if (update.Message == null) return;
@@ -287,10 +287,6 @@ namespace AiaTelegramBot.TG_Bot.models
         {
             if (update.Message == null) return;
             string args = GetArgs(update.Message.Text);
-            if (string.IsNullOrEmpty(args))
-            {
-                BotLogger.Log($"Команде \"{Keyword}\" не были переданы аргументы (опции к скрипту). Скрипт будет запущен без аргументов", LogLevels.WARNING, logPath);
-            }
             BotLogger.Log($"Запуск скрипта по команде \"{Keyword}\":\n\t{Location.Replace("\\", "\\\\")} {args}", LogLevels.INFO, logPath);
             SendCustomMessage_API(client, update, token, $"Запуск скрипта по команде `{Keyword}`:\n```\n{Filename ?? "нет имени файла"} {args}\n```");
 
