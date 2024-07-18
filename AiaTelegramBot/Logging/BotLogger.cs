@@ -25,7 +25,7 @@ namespace AiaTelegramBot.Logging
                     Console.ForegroundColor = ConsoleColor.Red;
                     break;
                 case LogLevels.WARNING:
-                    Console.ForegroundColor = ConsoleColor.White;
+                    Console.ForegroundColor = ConsoleColor.Black;
                     Console.BackgroundColor = ConsoleColor.DarkYellow;
                     break;
                 case LogLevels.INFO:

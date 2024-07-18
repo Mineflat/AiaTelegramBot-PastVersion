@@ -697,7 +697,7 @@ namespace AiaTelegramBot.TG_Bot
                             HelpMessage += $"`[{buffer[1]}]`  ";
                         }
                     });
-                    HelpMessage += $"\n{actionsBuffer[0].Description ?? "(нет описания действия)"}\n\n";
+                    HelpMessage += $"\n{actionsBuffer[i].Description ?? "(нет описания действия)"}\n\n";
                 }
                 //Console.WriteLine("----------------------------");
                 //Console.WriteLine($"\t{actionsBuffer.Count} - {botactions.Count}:");
