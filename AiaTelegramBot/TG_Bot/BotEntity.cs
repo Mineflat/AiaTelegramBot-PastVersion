@@ -11,6 +11,10 @@ using AiaTelegramBot.API;
 using System.Net;
 using System.Text;
 using System.Collections;
+using System;
+using static System.Collections.Specialized.BitVector32;
+using System.Collections.Generic;
+using System.Threading.Channels;
 
 namespace AiaTelegramBot.TG_Bot
 {
@@ -319,8 +323,8 @@ namespace AiaTelegramBot.TG_Bot
                         "/restart-api",
                         "/action-names",
                         "/ping",
-                        "/admin-help",
-                        "/update-env"
+                        "/update-env",
+                        "/admin-help"
                     })
                     {
                         if (msg.ToLower().StartsWith(command.ToLower()))
@@ -508,7 +512,9 @@ namespace AiaTelegramBot.TG_Bot
                                 "⚙️ `/restart-api`\n" +
                                 "Попытаться перезапустить API-сервис бота\n" +
                                 "⚙️ `/action-names`\n" +
-                                "Получить список всех действий по их именам",
+                                "Получить список всех действий по их именам\n" +
+                                "⚙️ `/update-env`\n" +
+                                "Обновить переменные окружения из файла **EnvPath**. Переменные доступны во скриптах, всех запускаемых ботом",
                                 cancellationToken: token,
                                 replyToMessageId: update.Message.MessageId,
                                 parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
@@ -662,35 +668,57 @@ namespace AiaTelegramBot.TG_Bot
                     parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
                 return;
             }
-            if (RunningConfiguration.HideInactiveActions)
+
+            string[] buffer;
+            List<BotAction> actionsBuffer = BotActions;
+            List<BotAction> ReverseBuffer = new List<BotAction>();
+            //int a = 0;
+            Console.WriteLine($"\tBotActions: {BotActions.Count}\tactionsBuffer: {actionsBuffer.Count}");
+            for (int i = 0; i < actionsBuffer.Count; i++)
             {
-                BotActions.ForEach(action =>
+                if (RunningConfiguration.HideInactiveActions && !BotActions[i].IsActive) continue;
+                if (string.IsNullOrEmpty(actionsBuffer[i].Keyword)) continue;
+                buffer = actionsBuffer[i].Keyword.Split(' ');
+                List<BotAction> botactions = actionsBuffer.FindAll(x => (CoreFunctions.StringCompare(x.Keyword.Split(' ')[0], buffer[0]) > 60.0));
+                if (botactions.Count == 1)
                 {
-                    if ((action.IsAdmin == includeAdmin) && action.IsActive)
+                    HelpMessage += $"✏️ `{actionsBuffer[i].Keyword}`\n" +
+                    $"    {actionsBuffer[i].Description ?? "(нет описания действия)"}\n\n";
+                }
+                //Сомнения
+                if (botactions.Count > 1)
+                {
+                    HelpMessage += $"✏️ `{actionsBuffer[i].Keyword.Split(' ')[0]}`\nДопустимые опции:\n";
+                    botactions.ForEach(x =>
                     {
-                        HelpMessage +=
-                            $"✏️ `{action.Keyword}`\n" +
-                            $"    {action.Description ?? "(нет описания действия)"}\n\n";
-                    }
-                });
+                        buffer = x.Keyword.Split(' ');
+                        if (buffer.Length > 1)
+                        {
+                            HelpMessage += $"`[{buffer[1]}]`  ";
+                        }
+                    });
+                    HelpMessage += $"\n{actionsBuffer[0].Description ?? "(нет описания действия)"}\n\n";
+                }
+                //Console.WriteLine("----------------------------");
+                //Console.WriteLine($"\t{actionsBuffer.Count} - {botactions.Count}:");
+                //botactions.ForEach(x => Console.WriteLine($"\t\t+ {x.Keyword}"));
+                actionsBuffer = actionsBuffer.Except(botactions).ToList();
+                ReverseBuffer.AddRange(botactions);
+                //a += botactions.Count;
+                //botactions.ForEach(x => Console.WriteLine($"\t\t- {x.Keyword}"));
+                //Console.WriteLine("----------------------------");
             }
-            else
+            foreach (var item in BotActions.Except(ReverseBuffer))
             {
-                BotActions.ForEach(action =>
-                {
-                    if (action.IsAdmin == includeAdmin)
-                    {
-                        HelpMessage +=
-                            $"{(action.IsActive ? $"✅" : "⛔️")} `{action.Keyword}`\n" +
-                            $"    {action.Description ?? "(нет описания действия)"}\n\n";
-                    }
-                });
+                HelpMessage += $"✏️ `{item.Keyword}`\n" +
+                $"    {item.Description ?? "(нет описания действия)"}\n\n";
             }
             await client.SendTextMessageAsync(update.Message.Chat.Id, $"{HelpMessage}",
-                                cancellationToken: token,
-                                replyToMessageId: update.Message.MessageId,
-                                parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                cancellationToken: token,
+                replyToMessageId: update.Message.MessageId,
+                parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
         }
+
         #endregion
     }
 }

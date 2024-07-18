@@ -1,5 +1,8 @@
 ﻿using AiaTelegramBot.Logging;
 using AiaTelegramBot.TG_Bot;
+using Npgsql;
+using System.Security.Cryptography.X509Certificates;
+using Telegram.Bots.Requests;
 
 namespace AiaTelegramBot
 {

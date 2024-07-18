@@ -77,7 +77,6 @@ namespace AiaTelegramBot.TG_Bot.models
             }
             return null;
         }
-        //public async Task RunApiAction(ITelegramBotClient client, CancellationToken token, string? logPath = null)
         public async Task RunAction(ITelegramBotClient client, Telegram.Bot.Types.Update update, CancellationToken token, string? logPath = null)
         {
             if (!IsActive)

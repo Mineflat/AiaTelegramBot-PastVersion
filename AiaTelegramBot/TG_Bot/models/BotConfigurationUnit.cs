@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -117,6 +118,7 @@ namespace AiaTelegramBot.TG_Bot.models
                     }
                     BotLogger.Log($"Ошибка экспорта переменных окруженя - файл {EnvPath} пуст", BotLogger.LogLevels.WARNING, LogPath);
                 }
+                BotLogger.Log($"Ошибка экспорта переменных окруженя - файл {EnvPath} не указан или не существует", BotLogger.LogLevels.WARNING, LogPath);
             }
             catch (Exception e)
             {
