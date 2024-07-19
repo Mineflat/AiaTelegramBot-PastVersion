@@ -161,7 +161,6 @@ namespace AiaTelegramBot.TG_Bot.models
                     if (stream.Length == 0) Console.WriteLine("А СТРИМ-ТО ОЧИСТИЛСЯ РАНЬШЕ");
                     Telegram.Bot.Types.InputFile filePath = Telegram.Bot.Types.InputFile.FromStream(stream, $"attach://{GetFilename(ImageGroupPaths[i])}");
                     inputMedia.Add(new InputMediaPhoto(filePath));
-                    stream.Dispose();
                 }
                 IAlbumInputMedia[] sendMedia = inputMedia.ToArray();
                 for (int i = 0; i < sendMedia.Length; i++)
@@ -169,7 +168,6 @@ namespace AiaTelegramBot.TG_Bot.models
                     Console.WriteLine(sendMedia[i]);
                 }
                 await client.SendMediaGroupAsync(update.Message.Chat.Id, sendMedia, cancellationToken: token);
-
                 //await client.SendMediaGroupAsync(update.Message.Chat.Id, inputMedia, cancellationToken: token);
 
                 //await client.SendMediaGroupAsync(update.Message.Chat.Id, media: new IAlbumInputMedia[]
