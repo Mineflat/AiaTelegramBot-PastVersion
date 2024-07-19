@@ -1,4 +1,5 @@
 ﻿using AiaTelegramBot.Logging;
+using Newtonsoft.Json;
 using Polly;
 using System;
 using System.Collections.Generic;
@@ -16,6 +17,7 @@ using Telegram.Bot.Types;
 using Telegram.Bots.Types;
 using static AiaTelegramBot.Logging.BotLogger;
 using static System.Net.Mime.MediaTypeNames;
+using InputFile = Telegram.Bots.Types.InputFile;
 
 namespace AiaTelegramBot.TG_Bot.models
 {
@@ -33,39 +35,44 @@ namespace AiaTelegramBot.TG_Bot.models
         public string? Filename = string.Empty;
         public bool SendFile = false;
         public string? FilePath = null;
+        public string[]? ImageGroupPaths { get; set; }
+        //public string[]? ImageGroupPaths { get; set; }
         public string? TargetID { get; set; } = string.Empty;
         public string? TargetMessage { get; set; } = string.Empty;
         protected List<string> FileContent = new List<string>();
-        public BotAction(string name, string keyword, bool isActive, bool isAdmin, string actionType, string location, string targetID, string? targetMessage)
-        {
-            // Прости господи меня за такой код...
-            if (string.IsNullOrEmpty(name)) throw new Exception("Поле name не может быть пустым");
-            if (string.IsNullOrEmpty(keyword)) throw new Exception("Поле keyword не может быть пустым");
-            if (string.IsNullOrEmpty(actionType)) throw new Exception("Поле actionType не может быть пустым");
-            // Господь простил :) 
-            Name = name;
-            Keyword = keyword;
-            IsActive = isActive;
-            IsAdmin = isAdmin;
-            ActionType = actionType;
-            if (string.IsNullOrEmpty(targetID) || string.IsNullOrEmpty(targetMessage))
-            {
-                if (!string.IsNullOrEmpty(location))
-                    if (!(System.IO.File.Exists(location) || System.IO.Directory.Exists(location)))
-                    {
-                        throw new Exception($"Файл или директория, указанная в поле location, не существует ({name})");
+        //public BotAction(string name, string keyword, bool isActive, 
+        //    bool isAdmin, string actionType, string location, string targetID, 
+        //    string? targetMessage, string[] ImageGroupPaths)
+        //{
+        //    // Прости господи меня за такой код...
+        //    if (string.IsNullOrEmpty(name)) throw new Exception("Поле name не может быть пустым");
+        //    if (string.IsNullOrEmpty(keyword)) throw new Exception("Поле keyword не может быть пустым");
+        //    if (string.IsNullOrEmpty(actionType)) throw new Exception("Поле actionType не может быть пустым");
+        //    // Господь простил :) 
+        //    Name = name;
+        //    Keyword = keyword;
+        //    IsActive = isActive;
+        //    IsAdmin = isAdmin;
+        //    ActionType = actionType;
+        //    ImageGroupPaths = ImageGroupPaths;
+        //    if (string.IsNullOrEmpty(targetID) || string.IsNullOrEmpty(targetMessage))
+        //    {
+        //        if (!string.IsNullOrEmpty(location))
+        //            if (!(System.IO.File.Exists(location) || System.IO.Directory.Exists(location)))
+        //            {
+        //                throw new Exception($"Файл или директория, указанная в поле location, не существует ({name})");
 
-                    }
-                    else
-                    {
-                        Location = location;
-                        Filename = GetFilename(Location);
-                    }
-                return;
-            }
-            TargetMessage = targetMessage;
-            TargetID = targetID;
-        }
+        //            }
+        //            else
+        //            {
+        //                Location = location;
+        //                Filename = GetFilename(Location);
+        //            }
+        //        return;
+        //    }
+        //    TargetMessage = targetMessage;
+        //    TargetID = targetID;
+        //}
         public static string? GetFilename(string location)
         {
             string[] pathContent;
@@ -101,6 +108,9 @@ namespace AiaTelegramBot.TG_Bot.models
                 case "random_text":
                     GetRandomText(client, update, token, logPath);
                     break;
+                case "image_group":
+                    SendImageGroup(client, update, token, logPath);
+                    break;
                 case "random_image":
                     GetRandomImage(client, update, token, logPath);
                     break;
@@ -122,6 +132,84 @@ namespace AiaTelegramBot.TG_Bot.models
                     break;
             }
         }
+        protected async void SendImageGroup(ITelegramBotClient client, Telegram.Bot.Types.Update update, CancellationToken token, string? logPath = null)
+        {
+            if (update.Message == null) return;
+            if ((ImageGroupPaths == null) || (ImageGroupPaths.Length == 0))
+            {
+                BotLogger.Log($"Невозможно отправить несколько картинок в чат по команде `{Keyword}` ({Name}): В описании действия не задан массив ImageGroupPaths", LogLevels.ERROR, Location);
+                return;
+            }
+
+            //await client.SendMediaGroupAsync(update.Message.Chat.Id, phts,  cancellationToken: token);
+
+            //List<Telegram.Bot.Types.InputFile> content = new List<Telegram.Bot.Types.InputFile>();
+            //List<InputMediaPhoto> phts = new List<InputMediaPhoto>();
+            //for (int i = 0; i < ImageGroupPaths?.Length; i++)
+            //{
+            //    //imageStreams.Add(System.IO.File.OpenRead($"{ImageGroupPaths[i]}"));
+            //    content.Add(Telegram.Bot.Types.InputFile.FromStream(System.IO.File.OpenRead($"{ImageGroupPaths[i]}")));
+            //    phts.Add(new InputMediaPhoto(content[i]) { Caption = "--"});
+            //}
+            //await client.SendMediaGroupAsync(update.Message.Chat.Id, phts,  cancellationToken: token);
+            //return;
+
+            List<FileStream> streams = new List<FileStream>();
+            List<InputMediaPhoto> phts = new List<InputMediaPhoto>();
+            try
+            {
+                foreach (string p in ImageGroupPaths)
+                {
+                    InputFile file = new InputFile(p);
+                    FileStream s = System.IO.File.OpenRead(p);
+                    streams.Add(s);
+                    phts.Add(new InputMediaPhoto(Telegram.Bot.Types.InputFile
+                    {
+                        s,
+                        Path.GetFileName(p)
+                    }));
+                }
+                await client.SendMediaGroupAsync(update.Message.Chat.Id, phts);
+                //List<Stream> imageStreams = new List<Stream>();
+                ////List<Telegram.Bot.Types.InputFile> content = new List<Telegram.Bot.Types.InputFile>();
+                ////List<InputMediaPhoto> phts = new List<InputMediaPhoto>();
+                ////for (int i = 0; i < ImageGroupPaths?.Length; i++)
+                ////{
+                ////    //imageStreams.Add(System.IO.File.OpenRead($"{ImageGroupPaths[i]}"));
+                ////    content.Add(Telegram.Bot.Types.InputFile.FromStream(System.IO.File.OpenRead($"{ImageGroupPaths[i]}")));
+                ////    phts.Add(new InputMediaPhoto(content[i]));
+                ////}
+                ////await client.SendMediaGroupAsync(update.Message.Chat.Id, phts);
+                //await using Stream stream = System.IO.File.OpenRead(randomImagePath);
+                //if (update.Message.MessageId == 0)
+                //{
+                //    await client.SendPhotoAsync(update.Message.Chat.Id,
+                //        Telegram.Bot.Types.InputFile.FromStream(stream, $"{GetFilename(randomImagePath)}"),
+                //        caption: $"`{GetFilename(randomImagePath)}`",
+                //        parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                //}
+                //else
+                //{
+                //    await client.SendPhotoAsync(update.Message.Chat.Id,
+                //        Telegram.Bot.Types.InputFile.FromStream(stream, $"{GetFilename(randomImagePath)}"),
+                //        caption: $"`{GetFilename(randomImagePath)}`",
+                //        replyToMessageId: update.Message.MessageId,
+                //        parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                //}
+            }
+            catch (Exception IOException)
+            {
+                BotLogger.Log($"Не удалось получить один или несколько файлов по команде \"{Keyword}\":\n{IOException.Message}", LogLevels.ERROR, logPath);
+                SendCustomMessage_API(client, update, token, $"Не удалось выполнить команду `{Keyword}` ({Name}):\n```\n{IOException.Message}\n```");
+            }
+            finally
+            {
+                foreach (var s in streams) s.Dispose();
+                phts.Clear();
+            }
+
+        }
+
         protected async void SendMessage(ITelegramBotClient client, Telegram.Bot.Types.Update update, CancellationToken token, string? logPath = null)
         {
             if (string.IsNullOrEmpty(update.Message?.Text)) return;
@@ -437,10 +525,25 @@ namespace AiaTelegramBot.TG_Bot.models
         }
         public string GetActionInfo()
         {
+            if ((ImageGroupPaths != null) && (ImageGroupPaths.Length > 0))
+            {
+                string imagePathshPart = string.Empty;
+                foreach (var item in ImageGroupPaths)
+                {
+                    imagePathshPart += $"\n- {item}";
+                }
+                return $"\tИмя: \"{Name}\"\tСтрока вызова: \"{Keyword}\"\tТип: {ActionType}\n" +
+                    $"\tТолько администраторы: {IsAdmin}\t Активное: {IsActive}\n" +
+                    $"\tВывод форматируется на стороне Телеграмм: {UseParsing}\tВывод логируется: {LogOutput}\n" +
+                    $"\tСвязанный файл: \"{Location}\"\n" +
+                    $"\tСвязанные файлы:\n" +
+                    $"{imagePathshPart}";
+            }
             return $"\tИмя: \"{Name}\"\tСтрока вызова: \"{Keyword}\"\tТип: {ActionType}\n" +
                 $"\tТолько администраторы: {IsAdmin}\t Активное: {IsActive}\n" +
                 $"\tВывод форматируется на стороне Телеграмм: {UseParsing}\tВывод логируется: {LogOutput}\n" +
                 $"\tСвязанный файл: \"{Location}\"\n";
+
         }
     }
 }

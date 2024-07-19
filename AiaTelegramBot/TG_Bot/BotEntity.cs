@@ -15,6 +15,7 @@ using System;
 using static System.Collections.Specialized.BitVector32;
 using System.Collections.Generic;
 using System.Threading.Channels;
+using System.Text.Json;
 
 namespace AiaTelegramBot.TG_Bot
 {
@@ -366,7 +367,7 @@ namespace AiaTelegramBot.TG_Bot
                                     $"{RunningConfiguration.WorkingDirectory}/latest.log");
                                 return;
                             }
-                            SendAndLogMessage(client, update, token, $"Cписок действий бота успешно обновлен. активных действий: `{BotActions.Count}`.\nИспользуйте команду `/help`, чтобы получить актуальный список действий",
+                            SendAndLogMessage(client, update, token, $"Cписок действий бота успешно обновлен.\nАктивных действий: `{BotActions.Count}`.\nИспользуйте команду `/help`, чтобы получить актуальный список действий",
                                 BotLogger.LogLevels.WARNING,
                                 $"{RunningConfiguration.WorkingDirectory}/latest.log");
                             break;
@@ -573,27 +574,59 @@ namespace AiaTelegramBot.TG_Bot
             List<BotAction> botActions_buffer = new List<BotAction>();
             try
             {
-                foreach (string filename in configLocations)
+                foreach (string filePath in configLocations)
                 {
-                    string content = System.IO.File.ReadAllText(filename);
                     try
                     {
-                        BotAction? targetAction = JsonConvert.DeserializeObject<BotAction>(content);
+                        Console.WriteLine($"\n\t{filePath}");
+                        string content = System.IO.File.ReadAllText(filePath);
+                        JsonSerializerSettings jsonSelectSettings = new JsonSerializerSettings()
+                        {
+                            EqualityComparer = StringComparer.OrdinalIgnoreCase,
+                            ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+                            NullValueHandling = NullValueHandling.Ignore,
+                            Formatting = Formatting.Indented
+                        };
+                        BotAction? targetAction = JsonConvert.DeserializeObject<BotAction>(content, jsonSelectSettings);
+                        //Console.WriteLine($"---------- Содержание файла ----------\n{content}\n--------------------------------------");
+                        //Console.WriteLine($"{JsonConvert.SerializeObject(targetAction, Formatting.Indented)}");
+                        //continue;
                         if (targetAction == null)
                         {
-                            Log($"Не удалось десериализовать действие {filename}:\n", BotLogger.LogLevels.ERROR);
-                            Log($"---------- Содержание файла ----------\n{content}\n--------------------------------------", BotLogger.LogLevels.INFO);
+                            Log($"Не удалось прочитать действие {filePath}:", BotLogger.LogLevels.WARNING);
+                            Console.WriteLine($"---------- Содержание файла ----------\n{content}\n--------------------------------------");
                             continue;
                         }
-                        if (targetAction.IsActive)
+                        if (!targetAction.IsActive)
                         {
-                            botActions_buffer.Add(targetAction);
-                            Log($"Добавлено новое действие:\n{targetAction.GetActionInfo()}", BotLogger.LogLevels.INFO);
+                            Log($"Действие {filePath} проигнорировано, т.к. помечено как неактивное", BotLogger.LogLevels.WARNING);
+                            continue;
                         }
-                        else
-                        {
-                            Log($"Действие:\n{targetAction.Name} проигнорировано, т.к. помечено как неактивное", BotLogger.LogLevels.WARNING);
-                        }
+                        //Console.WriteLine($"\t\t\t{targetAction.ImageGroupPaths.Length}");
+                        botActions_buffer.Add(targetAction);
+                        Log($"Добавлено новое действие:\n{targetAction.GetActionInfo()} ", BotLogger.LogLevels.SUCCESS);
+
+                        //Console.WriteLine($"{JsonConvert.SerializeObject(content)}");
+
+                        //BotAction? targetAction = System.Text.Json.JsonSerializer.Deserialize<BotAction>(content, options);
+                        //if (targetAction == null)
+                        //{
+                        //    Log($"Не удалось десериализовать действие {filename}:\n", BotLogger.LogLevels.ERROR);
+                        //    Log($"---------- Содержание файла ----------\n{content}\n--------------------------------------", BotLogger.LogLevels.INFO);
+                        //    continue;
+                        //}
+                        //Log($"Добавлено новое действие:\n{JsonConvert.SerializeObject(targetAction)}\n", BotLogger.LogLevels.INFO);
+
+                        //if (targetAction.IsActive)
+                        //{
+                        //    botActions_buffer.Add(targetAction);
+                        //    //Log($"Добавлено новое действие:\n{JsonConvert.SerializeObject(targetAction)}\n", BotLogger.LogLevels.INFO);
+                        //    Log($"Добавлено новое действие:\n{targetAction.GetActionInfo()}", BotLogger.LogLevels.INFO);
+                        //}
+                        //else
+                        //{
+                        //    Log($"Действие:\n{targetAction.Name} проигнорировано, т.к. помечено как неактивное", BotLogger.LogLevels.WARNING);
+                        //}
                     }
                     catch (Exception entityCreatingException)
                     {
@@ -672,7 +705,6 @@ namespace AiaTelegramBot.TG_Bot
             string[] buffer;
             List<BotAction> actionsBuffer = BotActions;
             List<BotAction> ReverseBuffer = new List<BotAction>();
-            //int a = 0;
             Console.WriteLine($"\tBotActions: {BotActions.Count}\tactionsBuffer: {actionsBuffer.Count}");
             for (int i = 0; i < actionsBuffer.Count; i++)
             {
@@ -683,7 +715,7 @@ namespace AiaTelegramBot.TG_Bot
                 if (botactions.Count == 1)
                 {
                     HelpMessage += $"✏️ `{actionsBuffer[i].Keyword}`\n" +
-                    $"    {actionsBuffer[i].Description ?? "(нет описания действия)"}\n\n";
+                    $"    📝 {actionsBuffer[i].Description ?? "(нет описания действия)"}\n\n";
                 }
                 //Сомнения
                 if (botactions.Count > 1)
@@ -691,22 +723,17 @@ namespace AiaTelegramBot.TG_Bot
                     HelpMessage += $"✏️ `{actionsBuffer[i].Keyword.Split(' ')[0]}`\nДопустимые опции:\n";
                     botactions.ForEach(x =>
                     {
+                        // ToDo: Тут бы рекурсию сделать
                         buffer = x.Keyword.Split(' ');
                         if (buffer.Length > 1)
                         {
                             HelpMessage += $"`[{buffer[1]}]`  ";
                         }
                     });
-                    HelpMessage += $"\n{actionsBuffer[i].Description ?? "(нет описания действия)"}\n\n";
+                    HelpMessage += $"\n📝 {actionsBuffer[i].Description ?? "(нет описания действия)"}\n\n";
                 }
-                //Console.WriteLine("----------------------------");
-                //Console.WriteLine($"\t{actionsBuffer.Count} - {botactions.Count}:");
-                //botactions.ForEach(x => Console.WriteLine($"\t\t+ {x.Keyword}"));
                 actionsBuffer = actionsBuffer.Except(botactions).ToList();
                 ReverseBuffer.AddRange(botactions);
-                //a += botactions.Count;
-                //botactions.ForEach(x => Console.WriteLine($"\t\t- {x.Keyword}"));
-                //Console.WriteLine("----------------------------");
             }
             foreach (var item in BotActions.Except(ReverseBuffer))
             {
@@ -718,7 +745,6 @@ namespace AiaTelegramBot.TG_Bot
                 replyToMessageId: update.Message.MessageId,
                 parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
         }
-
         #endregion
     }
 }
