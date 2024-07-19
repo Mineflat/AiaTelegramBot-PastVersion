@@ -161,7 +161,7 @@ namespace AiaTelegramBot.TG_Bot.models
                     if (stream.Length == 0) Console.WriteLine("А СТРИМ-ТО ОЧИСТИЛСЯ РАНЬШЕ");
                     Telegram.Bot.Types.InputFile filePath = Telegram.Bot.Types.InputFile.FromStream(stream, $"attach://{GetFilename(ImageGroupPaths[i])}");
                     inputMedia.Add(new InputMediaPhoto(filePath));
-                    //stream.Dispose();
+                    stream.Dispose();
                 }
                 IAlbumInputMedia[] sendMedia = inputMedia.ToArray();
                 for (int i = 0; i < sendMedia.Length; i++)
