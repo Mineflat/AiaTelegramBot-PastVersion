@@ -1,4 +1,5 @@
 ﻿using AiaTelegramBot.Logging;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -50,12 +51,19 @@ namespace AiaTelegramBot.TG_Bot.models
         // }
         public string? ActionsDirectory { get; set; } = "";
         public bool HideInactiveActions { get; set; } = false;
-
+        // Порт API
         public ushort ApiPort { get; protected set; } = 3200;
         public bool IsApiEnabled { get; protected set; } = false;
         //public string ApiKey { get; protected set; } = string.Empty;
         public string? LogPath { get; protected set; } = string.Empty;
+        // Путь к файлу с переменными окружения, которые будут инициированы в 
+        // момент запуска бота и будут доступны в скриптах, которые им запускаются
         public string? EnvPath { get; protected set; } = string.Empty;
+        // Путь к директории с конфигурационными файлами пользователей
+        public string? UserDirectory { get; set; } = "";
+        // Указывает на возможность использования конфигурационных файлов пользователей
+        public bool UseUserConfiguration { get; protected set; } = false;
+
 
         #region По командам 
         // Список команд администратора:
@@ -73,7 +81,10 @@ namespace AiaTelegramBot.TG_Bot.models
             bool storeConversationStory = false,
             bool storeNewUsernames = false,
             bool storeLogs = false,
-            string? actionsDirectory = "", ushort apiPort = 3200, bool isApiEnabled = false)
+            string? actionsDirectory = "",
+            ushort apiPort = 3200,
+            bool isApiEnabled = false,
+            string? userDirectory = "")
         {
             WorkingDirectory = workingDirectory;
             WhitelistLocation = whitelistLocation;
@@ -83,8 +94,10 @@ namespace AiaTelegramBot.TG_Bot.models
             ActionsDirectory = actionsDirectory;
             ApiPort = apiPort;
             IsApiEnabled = isApiEnabled;
+            UserDirectory = userDirectory;
             UpdateBotWhiteList();
             ExportEnvVars();
+            UseUserConfiguration = UpdateUsersConfiguration();
         }
 
         public bool ExportEnvVars()
@@ -123,6 +136,69 @@ namespace AiaTelegramBot.TG_Bot.models
             catch (Exception e)
             {
                 BotLogger.Log($"Ошибка экспорта переменных окруженя из файла {EnvPath}: {e.Message}", BotLogger.LogLevels.ERROR, LogPath);
+            }
+            return false;
+        }
+        public bool UpdateUsersConfiguration()
+        {
+            if (!Directory.Exists(UserDirectory))
+            {
+                BotLogger.Log($"Не удалось прочитать кофигурацию пользователей, т.к. директория не существует: \"{UserDirectory}\"", BotLogger.LogLevels.ERROR, LogPath);
+                return false;
+            }
+            try
+            {
+                List<string> filePaths = Directory.EnumerateFiles(UserDirectory, "*.json", SearchOption.AllDirectories).ToList<string>();
+                if (filePaths.Count > 0)
+                {
+                    List<UserEntity> usersBuffer = new List<UserEntity>();
+                    string content = string.Empty;
+                    foreach (string filePath in filePaths)
+                    {
+                        content = File.ReadAllText(filePath);
+                        JsonSerializerSettings jsonSelectSettings = new JsonSerializerSettings()
+                        {
+                            EqualityComparer = StringComparer.OrdinalIgnoreCase,
+                            ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+                            NullValueHandling = NullValueHandling.Ignore,
+                            Formatting = Formatting.Indented
+                        };
+                        UserEntity? userConfigEntity = JsonConvert.DeserializeObject<UserEntity>(content, jsonSelectSettings);
+                        if (userConfigEntity == null)
+                        {
+                            BotLogger.Log($"Не удалось прочитать кофигурацию пользователя из файла {filePath} - ошибка десериализатора данных",
+                                BotLogger.LogLevels.ERROR, LogPath);
+                            continue;
+                        }
+                        if ((userConfigEntity.ActiveComands == null) || (userConfigEntity.ActiveComands.Length == 0))
+                        {
+                            BotLogger.Log($"Файл {filePath} пропущен, т.к. указанный пользователь имеет пустой массив команд",
+                                BotLogger.LogLevels.ERROR, LogPath);
+                            continue;
+                        }
+                        if (usersBuffer.FirstOrDefault(x => x.UserID == userConfigEntity.UserID) != null)
+                        {
+                            BotLogger.Log($"Файл {filePath} пропущен, т.к. указанный пользователь уже был добавлен ранее существует",
+                                BotLogger.LogLevels.ERROR, LogPath);
+                            continue;
+                        }
+                        usersBuffer.Add(userConfigEntity);
+                        BotLogger.Log($"Добавлен новый пользователь с идентификатором {userConfigEntity.UserID}", BotLogger.LogLevels.INFO, LogPath);
+                    }
+                    if (usersBuffer.Count > 0)
+                    {
+                        BotLogger.Log($"Добавлено новых пользователей: {usersBuffer.Count} (директория {UserDirectory})", BotLogger.LogLevels.SUCCESS, LogPath);
+                        return true;
+                    }
+                    BotLogger.Log($"Из указаной директориии не получилось применить ни одного шаблона для пользователя", BotLogger.LogLevels.ERROR, LogPath);
+                    return false;
+                }
+                BotLogger.Log($"Не удалось прочитать кофигурацию пользователей: в указанной директории нет ни одного JSON-файла, доступного боту", BotLogger.LogLevels.ERROR, LogPath);
+                return false;
+            }
+            catch (Exception directoryEnumerationExceprion)
+            {
+                BotLogger.Log($"Не удалось прочитать кофигурацию пользователей: \"{directoryEnumerationExceprion.Message}\"", BotLogger.LogLevels.ERROR, LogPath);
             }
             return false;
         }

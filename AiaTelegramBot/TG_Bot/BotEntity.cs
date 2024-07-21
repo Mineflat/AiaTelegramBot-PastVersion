@@ -16,10 +16,11 @@ using static System.Collections.Specialized.BitVector32;
 using System.Collections.Generic;
 using System.Threading.Channels;
 using System.Text.Json;
+using Telegram.Bot.Types;
 
 namespace AiaTelegramBot.TG_Bot
 {
-    internal class BotEntity
+    internal partial class BotEntity
     {
         #region API
         private HttpListener? APIListener;
@@ -132,7 +133,202 @@ namespace AiaTelegramBot.TG_Bot
         public string? BotID { get; protected set; } = string.Empty;
         public string? BotName { get; protected set; } = string.Empty;
         protected StatUnit? statContiner = null;
-        public static List<BotAction> BotActions = new List<BotAction>();
+        public readonly static List<BotAction> BotSystemActions = new List<BotAction>()
+        {
+            #region HELPS implementation
+            /* help */ 
+            new BotAction()
+            {
+                Name = "SYSTEM: help",
+                Keyword = "/help",
+                Description = "Получить список команд, доступных пользователю",
+                ActionType = "SYSTEM",
+                IsActive = true,
+                UseParsing = true,
+                IsAdmin = false,
+                LogOutput = false,
+                Handler = GetHelp
+            },
+            /* admin-help */ 
+            new BotAction()
+            {
+                Name = "SYSTEM: admin-help",
+                Keyword = "/admin-help",
+                Description = "Получить список команд, доступных администратору",
+                ActionType = "SYSTEM",
+                IsActive = true,
+                UseParsing = true,
+                IsAdmin = true,
+                LogOutput = false,
+                Handler = GetAdminHelp
+            },
+            #endregion
+            #region DEBUG implementation
+            /* ping */
+            new BotAction()
+            {
+                Name = "SYSTEM: ping",
+                Keyword = "/ping",
+                Description = "Проверить работу бота",
+                ActionType = "SYSTEM",
+                IsActive = true,
+                UseParsing = true,
+                IsAdmin = true,
+                LogOutput = false,
+                Handler = GetPing
+            },
+            /* stats */
+            new BotAction()
+            {
+                Name = "SYSTEM: stats",
+                Keyword = "/stats",
+                Description = "Получить статистику работы бота",
+                ActionType = "SYSTEM",
+                IsActive = true,
+                UseParsing = true,
+                IsAdmin = true,
+                LogOutput = false,
+                Handler = GetStats
+            },
+            /* action-names */
+            new BotAction()
+            {
+                Name = "SYSTEM: action-names",
+                Keyword = "/action-names",
+                Description = "Получить имена всех действий (используется для работы с API-службой)",
+                ActionType = "SYSTEM",
+                IsActive = true,
+                UseParsing = true,
+                IsAdmin = true,
+                LogOutput = false,
+                Handler = GetActionNames
+            },
+            #endregion
+            #region API implementation
+            /* get-api */
+            new BotAction()
+            {
+                Name = "SYSTEM: get-api",
+                Keyword = "/get-api",
+                Description = "Проверить работу API-службы",
+                ActionType = "SYSTEM",
+                IsActive = true,
+                UseParsing = true,
+                IsAdmin = true,
+                LogOutput = false,
+                Handler = GetApi
+            },
+            /* stop-api */
+            new BotAction()
+            {
+                Name = "SYSTEM: stop-api",
+                Keyword = "/stop-api",
+                Description = "Остановить API-службу",
+                ActionType = "SYSTEM",
+                IsActive = true,
+                UseParsing = true,
+                IsAdmin = true,
+                LogOutput = false,
+                Handler = StopApi
+            },
+            /* restart-api */
+            new BotAction()
+            {
+                Name = "SYSTEM: restart-api",
+                Keyword = "/restart-api",
+                Description = "Перезапустить API-службу",
+                ActionType = "SYSTEM",
+                IsActive = true,
+                UseParsing = true,
+                IsAdmin = true,
+                LogOutput = false,
+                Handler = RestartApi
+            },
+            #endregion
+            #region UPDATES implementation
+            /* update-config */
+            new BotAction()
+            {
+                Name = "SYSTEM: update-config",
+                Keyword = "/update-config",
+                Description = "Обновить конфигурацию бота",
+                ActionType = "SYSTEM",
+                IsActive = true,
+                UseParsing = true,
+                IsAdmin = true,
+                LogOutput = true,
+                Handler = GetUpdateConfiguration
+            },
+            /* update-whitelist */
+            new BotAction()
+            {
+                Name = "SYSTEM: update-whitelist",
+                Keyword = "/update-whitelist",
+                Description = "Обновить белый список бота",
+                ActionType = "SYSTEM",
+                IsActive = true,
+                UseParsing = true,
+                IsAdmin = true,
+                LogOutput = true,
+                Handler = GetUpdateWhitelist
+            },
+            /* update-actions */
+            new BotAction()
+            {
+                Name = "SYSTEM: update-actions",
+                Keyword = "/update-actions",
+                Description = "Обновить список команд бота",
+                ActionType = "SYSTEM",
+                IsActive = true,
+                UseParsing = true,
+                IsAdmin = true,
+                LogOutput = true,
+                Handler = GetUpdateActions
+            },
+            /* update-env */
+            new BotAction()
+            {
+                Name = "SYSTEM: update-env",
+                Keyword = "/update-env",
+                Description = "Обновить переменные окружения из файла [EnvPath]",
+                ActionType = "SYSTEM",
+                IsActive = true,
+                UseParsing = true,
+                IsAdmin = true,
+                LogOutput = true,
+                Handler = GetUpdateEnv
+            },
+            #endregion
+            #region GET REQUESTS implementation
+            /* get-config */
+            new BotAction()
+            {
+                Name = "SYSTEM: get-config",
+                Keyword = "/get-config",
+                Description = "Получить активную конфигурацию бота",
+                ActionType = "SYSTEM",
+                IsActive = true,
+                UseParsing = true,
+                IsAdmin = true,
+                LogOutput = true,
+                Handler = GetRunningConfiguration
+            },
+            /* get-whitelist */
+            new BotAction()
+            {
+                Name = "SYSTEM: get-whitelist",
+                Keyword = "/get-whitelist",
+                Description = "Получить актуальный список ID пользователей из белого списка бота",
+                ActionType = "SYSTEM",
+                IsActive = true,
+                UseParsing = true,
+                IsAdmin = true,
+                LogOutput = true,
+                Handler = GetRunningWhitelist
+            }
+            #endregion
+        };
+        public static List<BotAction> BotActions = BotSystemActions;
         public static List<string> WhiteList = new List<string>();
         protected BotConfigurationUnit RunningConfiguration = new BotConfigurationUnit()
         {
@@ -145,7 +341,6 @@ namespace AiaTelegramBot.TG_Bot
         protected ITelegramBotClient? botClient;
         protected CancellationTokenSource cancellationToken = new CancellationTokenSource();
         protected ReceiverOptions Botoptions = new ReceiverOptions() { AllowedUpdates = { }, ThrowPendingUpdates = true };
-
         protected List<string> Usernames = new List<string>();
         protected async void StoreUsername(Telegram.Bot.Types.Update update)
         {
@@ -156,18 +351,18 @@ namespace AiaTelegramBot.TG_Bot
                 string usernameString = $"@{msg.Username ?? "[не определено]"} ({msg.Id}): {msg.FirstName ?? "[не определено]"} {msg.LastName ?? "[не определено]"}\n";
                 try
                 {
-                    if (File.Exists($"{RunningConfiguration.WorkingDirectory}/usernames"))
+                    if (System.IO.File.Exists($"{RunningConfiguration.WorkingDirectory}/usernames"))
                     {
-                        string[] lines = File.ReadAllLines($"{RunningConfiguration.WorkingDirectory}/usernames");
+                        string[] lines = System.IO.File.ReadAllLines($"{RunningConfiguration.WorkingDirectory}/usernames");
                         if (lines.FirstOrDefault(x => x == usernameString) != null)
                         {
                             Log($"Боту написал новый пользователь, которого бот раньше не встречал!\n\t{usernameString}", BotLogger.LogLevels.INFO);
-                            await File.AppendAllTextAsync($"{RunningConfiguration.WorkingDirectory}/usernames", usernameString);
+                            await System.IO.File.AppendAllTextAsync($"{RunningConfiguration.WorkingDirectory}/usernames", usernameString);
                         }
                         return;
                     }
                     Log($"Боту написал новый пользователь, которого бот раньше не встречал!\n\t{usernameString}", BotLogger.LogLevels.INFO);
-                    await File.AppendAllTextAsync($"{RunningConfiguration.WorkingDirectory}/usernames", usernameString);
+                    await System.IO.File.AppendAllTextAsync($"{RunningConfiguration.WorkingDirectory}/usernames", usernameString);
                 }
                 catch (Exception fileWriteException)
                 {
@@ -185,7 +380,7 @@ namespace AiaTelegramBot.TG_Bot
                 if (update.Message == null) return;
                 if (!Directory.Exists($"{RunningConfiguration.WorkingDirectory}/CHATS/")) Directory.CreateDirectory($"{RunningConfiguration.WorkingDirectory}/CHATS/");
                 string conversationPath = $"{RunningConfiguration.WorkingDirectory}/CHATS/{update.Message.Chat.Title?.Replace(" ", "_").Replace("/", "") ?? update.Message.Chat.Id.ToString()}";
-                await File.AppendAllTextAsync(conversationPath, $"[{update.Message.Date.ToLocalTime()}][{BotName}][@{update.Message?.From?.Username ?? "???"} ({update.Message?.From?.Id.ToString() ?? "???"})]: {update.Message?.Text ?? "[пустое сообщение]"}\n");
+                await System.IO.File.AppendAllTextAsync(conversationPath, $"[{update.Message.Date.ToLocalTime()}][{BotName}][@{update.Message?.From?.Username ?? "???"} ({update.Message?.From?.Id.ToString() ?? "???"})]: {update.Message?.Text ?? "[пустое сообщение]"}\n");
             }
             catch (Exception fileCretingException)
             {
@@ -245,9 +440,7 @@ namespace AiaTelegramBot.TG_Bot
         }
         protected async Task HandleUpdateAsync(ITelegramBotClient client, Telegram.Bot.Types.Update update, CancellationToken token)
         {
-#pragma warning disable CS8602 // Разыменование вероятной пустой ссылки.
-            statContiner.ReceivedUpdatesCount++;
-#pragma warning restore CS8602 // Разыменование вероятной пустой ссылки.
+            if (statContiner != null) statContiner.ReceivedUpdatesCount++;
             StoreUsername(update);
             StoreConversation(update);
             switch (update.Type)
@@ -256,63 +449,113 @@ namespace AiaTelegramBot.TG_Bot
                     Log($"[{BotName}][@{update.Message?.From?.Username ?? "???"} ({update.Message?.From?.Id.ToString() ?? "???"})]: {update.Message?.Text ?? "[UNKNOWN_UPDATE_TYPE]"}", BotLogger.LogLevels.MESSAGE);
                     break;
                 case Telegram.Bot.Types.Enums.UpdateType.Message:
-                    if (update.Message?.Text == null) return;
-                    statContiner.ReceivedMessagesCount++;
-                    Log($"[{BotName}][{update.Message?.From?.FirstName} {update.Message?.From?.LastName} (@{update.Message?.From?.Username ?? "???"} - {update.Message?.From?.Id.ToString() ?? "???"})]: {update.Message?.Text ?? "[пустое сообщение]"}", BotLogger.LogLevels.MESSAGE);
-                    string? msg = update.Message?.Text?.Trim();
-                    if (string.IsNullOrEmpty(msg)) return;
+                    if ((update.Message == null) || (update.Message.Text == null)) return;
+                    if (statContiner != null) statContiner.ReceivedMessagesCount++;
+                    Log($"[{BotName}][{update.Message?.From?.FirstName} {update.Message?.From?.LastName} " +
+                        $"(@{update.Message?.From?.Username ?? "???"} - {update.Message?.From?.Id.ToString() ?? "???"})]: " +
+                        $"{update.Message?.Text ?? "[пустое сообщение]"}", BotLogger.LogLevels.MESSAGE);
                     bool userIsAdmin = false;
-                    if (RunningConfiguration.Whitelist.Count > 0)
+                    // Проверка, что пользователь есть в белом списке
+                    if (RunningConfiguration.Whitelist.Count > 0) if (RunningConfiguration.Whitelist.FirstOrDefault(x => x == $"{update.Message?.From?.Id}") != null) userIsAdmin = true;
+#pragma warning disable CS8602 // Разыменование вероятной пустой ссылки.
+                    if (RunningConfiguration.UseUserConfiguration) await HandleUpdateAsync_UserConfiguration(client, update, token, update.Message.Text.Trim(), userIsAdmin);
+                    else await HandleUpdateAsync_vanilla(client, update, token, update.Message.Text.Trim(), userIsAdmin);
+#pragma warning restore CS8602 // Разыменование вероятной пустой ссылки.
+                    break;
+            }
+        }
+        protected async Task HandleUpdateAsync_vanilla(ITelegramBotClient client, Telegram.Bot.Types.Update update, CancellationToken token, string msg, bool userIsAdmin = false)
+        {
+            if (string.IsNullOrEmpty(msg)) return;
+
+            for (int i = 0; i < BotActions.Count; i++)
+            {
+                if (msg.ToLower().StartsWith(BotActions[i].Keyword.ToLower()))
+                {
+                    Log($"[{BotName}]: Распознана команда \"{BotActions[i].Keyword}\"", BotLogger.LogLevels.COMMAND);
+                    // Проверка прав пользователя
+                    if (BotActions[i].IsAdmin)
                     {
-                        //if (RunningConfiguration.Whitelist.First(x => x == $"{update.Message?.From?.Id}") != null)
-                        if (RunningConfiguration.Whitelist.FirstOrDefault(x => x == $"{update.Message?.From?.Id}") != null)
+                        if (!userIsAdmin)
                         {
-                            userIsAdmin = true;
+                            SendAndLogMessage(client, update, token, $"Обнаружена попытка запуска команды администратора пользователем, который им не является.\n" +
+                                $"`Этот инцидент будет отправлен на рассмотрение активным администраторам`",
+                                BotLogger.LogLevels.WARNING,
+                                $"{RunningConfiguration.WorkingDirectory}/latest.log");
+                            if (statContiner != null) statContiner.SentMessagesCount++;
+                            return;
                         }
                     }
-                    for (int i = 0; i < BotActions.Count; i++)
+                    // Проверка, что команда активна
+                    if (!BotActions[i].IsActive)
                     {
-                        if (msg.ToLower().StartsWith(BotActions[i].Keyword.ToLower()))
+                        SendAndLogMessage(client, update, token, $"В данный момент эта команда не активна",
+                            BotLogger.LogLevels.WARNING,
+                            $"{RunningConfiguration.WorkingDirectory}/latest.log");
+                        if (statContiner != null) statContiner.SentMessagesCount++;
+                        return;
+                    }
+                    if (BotActions[i].ActionType == "SYSTEM")
+                    {
+                        // Обработка вызова системной команды
+                        BotActions[i].Handler?.Invoke(client, update, token, $"{RunningConfiguration.WorkingDirectory}/latest.log", this);
+                        return;
+                    }
+#pragma warning disable CS4014 // Так как этот вызов не ожидается, выполнение существующего метода продолжается до тех пор, пока вызов не будет завершен
+                    // Обработка вызова команды
+                    BotActions[i].RunAction(client, update, token, logPath: $"{RunningConfiguration.WorkingDirectory}/latest.log");
+#pragma warning restore CS4014 // Так как этот вызов не ожидается, выполнение существующего метода продолжается до тех пор, пока вызов не будет завершен
+                    if (statContiner != null) statContiner.SentMessagesCount++;
+                }
+            }
+        }
+        protected async Task HandleUpdateAsync_UserConfiguration(ITelegramBotClient client, Telegram.Bot.Types.Update update, CancellationToken token, string msg, bool userIsAdmin = false)
+        {
+            if (string.IsNullOrEmpty(msg)) return;
+
+            for (int i = 0; i < BotActions.Count; i++)
+            {
+                if (msg.ToLower().StartsWith(BotActions[i].Keyword.ToLower()))
+                {
+                    Log($"[{BotName}]: Распознана команда \"{BotActions[i].Keyword}\"", BotLogger.LogLevels.COMMAND);
+                    if (BotActions[i].IsAdmin)
+                    {
+                        if (update.Message?.From == null) return;
+                        if (userIsAdmin)
                         {
-                            Log($"[{BotName}]: Распознана команда \"{BotActions[i].Keyword}\"", BotLogger.LogLevels.COMMAND);
-                            if (BotActions[i].IsAdmin)
-                            {
-                                if (update.Message?.From == null) return;
-                                if (userIsAdmin)
-                                {
-                                    if (!BotActions[i].IsActive)
-                                    {
-                                        SendAndLogMessage(client, update, token, "К сожалению, на данный момент эта команда *не активна*",
-                                            BotLogger.LogLevels.WARNING, $"{RunningConfiguration.WorkingDirectory}/latest.log");
-                                        return;
-                                    }
-                                    BotLogger.Log($"Запущена команда администратора ({update.Message.From.Id}/{BotActions[i].Name})",
-                                        BotLogger.LogLevels.INFO, $"{RunningConfiguration.WorkingDirectory}/latest.log");
-                                    await BotActions[i].RunAction(client, update, token, $"{RunningConfiguration.WorkingDirectory}/latest.log");
-                                    return;
-                                }
-                                SendAndLogMessage(client, update, token, $"Обнаружена попытка запуска команды администратора пользователем, который им не является: {update.Message.From.Id} (@{update.Message.From.Username}).\n" +
-                                    $"`Этот инцидент будет отправлен на рассмотрение активным администраторам`", BotLogger.LogLevels.WARNING, $"{RunningConfiguration.WorkingDirectory}/latest.log");
-                                return;
-                            }
                             if (!BotActions[i].IsActive)
                             {
                                 SendAndLogMessage(client, update, token, "К сожалению, на данный момент эта команда *не активна*",
                                     BotLogger.LogLevels.WARNING, $"{RunningConfiguration.WorkingDirectory}/latest.log");
                                 return;
                             }
-#pragma warning disable CS4014 // Так как этот вызов не ожидается, выполнение существующего метода продолжается до тех пор, пока вызов не будет завершен
-                            BotActions[i].RunAction(client, update, token, logPath: $"{RunningConfiguration.WorkingDirectory}/latest.log");
-                            statContiner.SentMessagesCount++;
-#pragma warning restore CS4014 // Так как этот вызов не ожидается, выполнение существующего метода продолжается до тех пор, пока вызов не будет завершен
-                            //await BotActions[i].RunAction(client, update, token, logPath: $"{RunningConfiguration.WorkingDirectory}/latest.log");
+                            BotLogger.Log($"Запущена команда администратора ({update.Message.From.Id}/{BotActions[i].Name})",
+                                BotLogger.LogLevels.INFO, $"{RunningConfiguration.WorkingDirectory}/latest.log");
+                            await BotActions[i].RunAction(client, update, token, $"{RunningConfiguration.WorkingDirectory}/latest.log");
                             return;
                         }
+                        SendAndLogMessage(client, update, token, $"Обнаружена попытка запуска команды администратора пользователем, который им не является: {update.Message.From.Id} (@{update.Message.From.Username}).\n" +
+                            $"`Этот инцидент будет отправлен на рассмотрение активным администраторам`", BotLogger.LogLevels.WARNING, $"{RunningConfiguration.WorkingDirectory}/latest.log");
+                        return;
                     }
-                    //if (update.Message == null) return;
-
-                    foreach (var command in new string[]
+                    if (!BotActions[i].IsActive)
                     {
+                        SendAndLogMessage(client, update, token, "К сожалению, на данный момент эта команда *не активна*",
+                            BotLogger.LogLevels.WARNING, $"{RunningConfiguration.WorkingDirectory}/latest.log");
+                        return;
+                    }
+#pragma warning disable CS4014 // Так как этот вызов не ожидается, выполнение существующего метода продолжается до тех пор, пока вызов не будет завершен
+                    BotActions[i].RunAction(client, update, token, logPath: $"{RunningConfiguration.WorkingDirectory}/latest.log");
+                    statContiner.SentMessagesCount++;
+#pragma warning restore CS4014 // Так как этот вызов не ожидается, выполнение существующего метода продолжается до тех пор, пока вызов не будет завершен
+                    //await BotActions[i].RunAction(client, update, token, logPath: $"{RunningConfiguration.WorkingDirectory}/latest.log");
+                    return;
+                }
+            }
+            //if (update.Message == null) return;
+
+            foreach (var command in new string[]
+            {
                         "/get-config",
                         "/get-whitelist",
                         "/update-actions",
@@ -326,202 +569,192 @@ namespace AiaTelegramBot.TG_Bot
                         "/ping",
                         "/update-env",
                         "/admin-help"
-                    })
-                    {
-                        if (msg.ToLower().StartsWith(command.ToLower()))
-                        {
-                            if (!userIsAdmin)
-                            {
-                                SendAndLogMessage(client, update, token, $"Обнаружена попытка запуска команды администратора пользователем, который им не является.\n" +
-                                    $"`Этот инцидент будет отправлен на рассмотрение активным администраторам`",
-                                    BotLogger.LogLevels.WARNING,
-                                    $"{RunningConfiguration.WorkingDirectory}/latest.log");
-                                statContiner.SentMessagesCount++;
-                                return;
-                            }
-                        }
-                    }
-                    if (update.Message == null) return;
-                    statContiner.SentMessagesCount++;
-                    switch (msg.ToLower())
-                    {
-                        case "/get-actions":
-                        case "/help":
-                            GetHelpMessage(client, update, token, userIsAdmin);
-                            return;
-                        case "/get-config":
-                            SendAndLogMessage(client, update, token, $"Актуальная конфигурация бота:\n{RunningConfiguration.GetBotConfiguration()}",
-                                BotLogger.LogLevels.WARNING,
-                                $"{RunningConfiguration.WorkingDirectory}/latest.log");
-                            break;
-                        case "/get-whitelist":
-                            SendAndLogMessage(client, update, token, $"{RunningConfiguration.GetBotWhiteList()}",
-                                BotLogger.LogLevels.WARNING,
-                                $"{RunningConfiguration.WorkingDirectory}/latest.log");
-                            break;
-                        case "/update-actions":
-                            if (!UpdateBotActions())
-                            {
-                                SendAndLogMessage(client, update, token, $"Не удалось обновить список действий бота",
-                                    BotLogger.LogLevels.WARNING,
-                                    $"{RunningConfiguration.WorkingDirectory}/latest.log");
-                                return;
-                            }
-                            SendAndLogMessage(client, update, token, $"Cписок действий бота успешно обновлен.\nАктивных действий: `{BotActions.Count}`.\nИспользуйте команду `/help`, чтобы получить актуальный список действий",
-                                BotLogger.LogLevels.WARNING,
-                                $"{RunningConfiguration.WorkingDirectory}/latest.log");
-                            break;
-                        case "/update-whitelist":
-                            if (!RunningConfiguration.UpdateBotWhiteList())
-                            {
-                                SendAndLogMessage(client, update, token, $"Не удалось обновить белый список бота",
-                                    BotLogger.LogLevels.WARNING,
-                                    $"{RunningConfiguration.WorkingDirectory}/latest.log");
-                                return;
-                            }
-                            SendAndLogMessage(client, update, token, $"Белый список бота успешно обновлен!\n{RunningConfiguration.GetBotWhiteList()}",
-                                BotLogger.LogLevels.WARNING,
-                                $"{RunningConfiguration.WorkingDirectory}/latest.log");
-                            break;
-                        case "/update-config":
-                            if (!UpdateBotConfiguration())
-                            {
-                                SendAndLogMessage(client, update, token, $"Не удалось обновить конфигурацию бота",
-                                    BotLogger.LogLevels.WARNING,
-                                    $"{RunningConfiguration.WorkingDirectory}/latest.log");
-                                return;
-                            }
-                            SendAndLogMessage(client, update, token, $"Конфигурация бота успешно обновлена:\n{RunningConfiguration.GetBotConfiguration()}",
-                                BotLogger.LogLevels.WARNING,
-                                $"{RunningConfiguration.WorkingDirectory}/latest.log");
-                            break;
-                        case "/stats":
-                            await client.SendTextMessageAsync(update.Message.Chat.Id, $"{statContiner.GetBotStats()}",
-                                cancellationToken: token,
-                                replyToMessageId: update.Message.MessageId,
-                                parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
-                            //SendAndLogMessage(client, update, token, $"{statContiner.GetBotStats()}",
-                            //BotLogger.LogLevels.COMMAND,
-                            //$"{RunningConfiguration.WorkingDirectory}/latest.log");
-                            break;
-                        case "/get-api":
-                            SendAndLogMessage(client, update, token, $"{API_URI_FORMATTED_MD_STATUS}",
-                            BotLogger.LogLevels.COMMAND,
-                            $"{RunningConfiguration.WorkingDirectory}/latest.log");
-                            break;
-                        case "/stop-api":
-                            SendAndLogMessage(client, update, token, "Инициирую *остановку* сервиса API...",
-                                BotLogger.LogLevels.COMMAND,
-                                $"{RunningConfiguration.WorkingDirectory}/latest.log");
-                            StopApi();
-                            break;
-                        case "/restart-api":
-                            SendAndLogMessage(client, update, token, "Инициирую *перезапуск* сервиса API...",
-                                BotLogger.LogLevels.COMMAND,
-                                $"{RunningConfiguration.WorkingDirectory}/latest.log");
-                            // Пока вы пишете код, который контролирует фабрику асинхронных лисенеров, я тупо перезапускаю API-сервис дважды и живу спокойно :)
-                            // Да, это откровенно конченое решение, да еще и работает с задержкой от 500 мс, но оно РАБОТАЕТ
-                            RestartAPI();
-                            await Task.Delay(1000);
-                            RestartAPI();
-                            break;
-                        case "/action-names":
-                            string replyMsg = $"Список всех действий, о которых знает бот:\n";
-                            BotActions.ForEach(x => replyMsg += $"✅ {(string.IsNullOrEmpty(x.Name) ? "[пусто]\n" : $"{x.Name}\n")}");
-                            await client.SendTextMessageAsync(update.Message.Chat.Id, replyMsg,
-                                cancellationToken: token,
-                                replyToMessageId: update.Message.MessageId,
-                                parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
-                            break;
-                        case "/ping":
-                            await client.SendTextMessageAsync(update.Message.Chat.Id, "✅ PONG",
-                                cancellationToken: token,
-                                replyToMessageId: update.Message.MessageId,
-                                parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
-                            break;
-                        case "/update-env":
-                            if (!RunningConfiguration.ExportEnvVars())
-                            {
-                                SendAndLogMessage(client, update, token, $"Не удалось обновить список переменных окружения бота",
-                                    BotLogger.LogLevels.WARNING,
-                                    $"{RunningConfiguration.WorkingDirectory}/latest.log");
-                                return;
-                            }
-                            string envList = string.Empty;
-                            foreach (DictionaryEntry de in Environment.GetEnvironmentVariables())
-                                envList += $"{de.Key} = {de.Value}";
-                            SendAndLogMessage(client, update, token, $"Список переменных окружения бота успешно обновлен:\n{envList}",
-                                BotLogger.LogLevels.SUCCESS,
-                                $"{RunningConfiguration.WorkingDirectory}/latest.log");
-                            break;
+            })
+            {
+                if (msg.ToLower().StartsWith(command.ToLower()))
+                {
 
-                        case "/admin-help":
-                            /* 
-                             await client.SendTextMessageAsync(update.Message.Chat.Id,
-                                "⚙️ /help\n" +
-                                "Получить список доступных действий\n" +
-                                "⚙️ /get_actions\n" +
-                                "То же самое, что и help\n" +
-                                "⚙️ /get_config\n" +
-                                "Получить конфигурацию бота в нный момент\n" +
-                                "⚙️ /get_whitelist\n" +
-                                "Получить список идентификаторов администраторов бота (Telegram User ID)\n" +
-                                "⚙️ /update_actions\n" +
-                                "Обновить список доступных действий\n" +
-                                "⚙️ /update_whitelist\n" +
-                                "Обновить список идентификаторов администраторов бота (Telegram User ID)\n" +
-                                "⚙️ /update_config\n" +
-                                "Обновить конфигурацию бота\n" +
-                                "⚙️ /ping\n" +
-                                "Если бот жив, он ответит: *PONG*\n" +
-                                "⚙️ /stats\n" +
-                                "Получить статистику по количеству сообщений, обработанных ботом, включая запросы к API\n" +
-                                "⚙️ /get_api\n" +
-                                "Получить строку подключения к API, если оно активировано и работает\n" +
-                                "⚙️ /stop_api\n" +
-                                "Остановить API-сервис бота, если тот запущен\n" +
-                                "⚙️ /restart_api\n" +
-                                "Попытаться перезапустить API-сервис бота\n" +
-                                "⚙️ /action_names\n" +
-                                "Получить список всех действий по их именам",
-                                cancellationToken: token,
-                                replyToMessageId: update.Message.MessageId);
-                            */
-                            await client.SendTextMessageAsync(update.Message.Chat.Id,
-                                "⚙️ `/help`\n" +
-                                "Получить список доступных действий\n" +
-                                "⚙️ `/get-actions`\n" +
-                                "То же самое, что и help\n" +
-                                "⚙️ `/get-config`\n" +
-                                "Получить конфигурацию бота в нный момент\n" +
-                                "⚙️ `/get-whitelist`\n" +
-                                "Получить список идентификаторов администраторов бота (Telegram User ID)\n" +
-                                "⚙️ `/update-actions`\n" +
-                                "Обновить список доступных действий\n" +
-                                "⚙️ `/update-whitelist`\n" +
-                                "Обновить список идентификаторов администраторов бота (Telegram User ID)\n" +
-                                "⚙️ `/update-config`\n" +
-                                "Обновить конфигурацию бота\n" +
-                                "⚙️ `/ping`\n" +
-                                "Если бот жив, он ответит: *PONG*\n" +
-                                "⚙️ `/stats`\n" +
-                                "Получить статистику по количеству сообщений, обработанных ботом, включая запросы к API\n" +
-                                "⚙️ `/get-api`\n" +
-                                "Получить строку подключения к API, если оно активировано и работает\n" +
-                                "⚙️ `/stop-api`\n" +
-                                "Остановить API-сервис бота, если тот запущен\n" +
-                                "⚙️ `/restart-api`\n" +
-                                "Попытаться перезапустить API-сервис бота\n" +
-                                "⚙️ `/action-names`\n" +
-                                "Получить список всех действий по их именам\n" +
-                                "⚙️ `/update-env`\n" +
-                                "Обновить переменные окружения из файла **EnvPath**. Переменные доступны во скриптах, всех запускаемых ботом",
-                                cancellationToken: token,
-                                replyToMessageId: update.Message.MessageId,
-                                parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
-                            statContiner.SentMessagesCount++;
-                            break;
-                    }
+                }
+            }
+            if (update.Message == null) return;
+            statContiner.SentMessagesCount++;
+            switch (msg.ToLower())
+            {
+                //case "/get-actions":
+                //case "/help":
+                //    GetHelpMessage(client, update, token, userIsAdmin);
+                //    return;
+                //case "/get-config":
+                //    SendAndLogMessage(client, update, token, $"Актуальная конфигурация бота:\n{RunningConfiguration.GetBotConfiguration()}",
+                //        BotLogger.LogLevels.WARNING,
+                //        $"{RunningConfiguration.WorkingDirectory}/latest.log");
+                //    break;
+                //case "/get-whitelist":
+                //    SendAndLogMessage(client, update, token, $"{RunningConfiguration.GetBotWhiteList()}",
+                //        BotLogger.LogLevels.WARNING,
+                //        $"{RunningConfiguration.WorkingDirectory}/latest.log");
+                //    break;
+                //case "/update-actions":
+                //    if (!UpdateBotActions())
+                //    {
+                //        SendAndLogMessage(client, update, token, $"Не удалось обновить список действий бота",
+                //            BotLogger.LogLevels.WARNING,
+                //            $"{RunningConfiguration.WorkingDirectory}/latest.log");
+                //        return;
+                //    }
+                //    SendAndLogMessage(client, update, token, $"Cписок действий бота успешно обновлен.\nАктивных действий: `{BotActions.Count}`.\nИспользуйте команду `/help`, чтобы получить актуальный список действий",
+                //        BotLogger.LogLevels.WARNING,
+                //        $"{RunningConfiguration.WorkingDirectory}/latest.log");
+                //    break;
+                //case "/update-whitelist":
+                //    if (!RunningConfiguration.UpdateBotWhiteList())
+                //    {
+                //        SendAndLogMessage(client, update, token, $"Не удалось обновить белый список бота",
+                //            BotLogger.LogLevels.WARNING,
+                //            $"{RunningConfiguration.WorkingDirectory}/latest.log");
+                //        return;
+                //    }
+                //    SendAndLogMessage(client, update, token, $"Белый список бота успешно обновлен!\n{RunningConfiguration.GetBotWhiteList()}",
+                //        BotLogger.LogLevels.WARNING,
+                //        $"{RunningConfiguration.WorkingDirectory}/latest.log");
+                //    break;
+                //case "/update-config":
+                //    if (!UpdateBotConfiguration())
+                //    {
+                //        SendAndLogMessage(client, update, token, $"Не удалось обновить конфигурацию бота",
+                //            BotLogger.LogLevels.WARNING,
+                //            $"{RunningConfiguration.WorkingDirectory}/latest.log");
+                //        return;
+                //    }
+                //    SendAndLogMessage(client, update, token, $"Конфигурация бота успешно обновлена:\n{RunningConfiguration.GetBotConfiguration()}",
+                //        BotLogger.LogLevels.WARNING,
+                //        $"{RunningConfiguration.WorkingDirectory}/latest.log");
+                //    break;
+                //case "/stats":
+                //    await client.SendTextMessageAsync(update.Message.Chat.Id, $"{statContiner.GetBotStats()}",
+                //        cancellationToken: token,
+                //        replyToMessageId: update.Message.MessageId,
+                //        parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                //    //SendAndLogMessage(client, update, token, $"{statContiner.GetBotStats()}",
+                //    //BotLogger.LogLevels.COMMAND,
+                //    //$"{RunningConfiguration.WorkingDirectory}/latest.log");
+                //    break;
+                //case "/get-api":
+                //    SendAndLogMessage(client, update, token, $"{API_URI_FORMATTED_MD_STATUS}",
+                //    BotLogger.LogLevels.COMMAND,
+                //    $"{RunningConfiguration.WorkingDirectory}/latest.log");
+                //    break;
+                //case "/stop-api":
+                //    SendAndLogMessage(client, update, token, "Инициирую *остановку* сервиса API...",
+                //        BotLogger.LogLevels.COMMAND,
+                //        $"{RunningConfiguration.WorkingDirectory}/latest.log");
+                //    StopApi();
+                //    break;
+                //case "/restart-api":
+                //    SendAndLogMessage(client, update, token, "Инициирую *перезапуск* сервиса API...",
+                //        BotLogger.LogLevels.COMMAND,
+                //        $"{RunningConfiguration.WorkingDirectory}/latest.log");
+                //    // Пока вы пишете код, который контролирует фабрику асинхронных лисенеров, я тупо перезапускаю API-сервис дважды и живу спокойно :)
+                //    // Да, это откровенно конченое решение, да еще и работает с задержкой от 500 мс, но оно РАБОТАЕТ
+                //    RestartAPI();
+                //    await Task.Delay(1000);
+                //    RestartAPI();
+                //    break;
+                //case "/action-names":
+                //    string replyMsg = $"Список всех действий, о которых знает бот:\n";
+                //    BotActions.ForEach(x => replyMsg += $"✅ {(string.IsNullOrEmpty(x.Name) ? "[пусто]\n" : $"{x.Name}\n")}");
+                //    await client.SendTextMessageAsync(update.Message.Chat.Id, replyMsg,
+                //        cancellationToken: token,
+                //        replyToMessageId: update.Message.MessageId,
+                //        parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                //    break;
+                //case "/ping":
+                //    await client.SendTextMessageAsync(update.Message.Chat.Id, "✅ PONG",
+                //        cancellationToken: token,
+                //        replyToMessageId: update.Message.MessageId,
+                //        parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                //    break;
+                //case "/update-env":
+                //    if (!RunningConfiguration.ExportEnvVars())
+                //    {
+                //        SendAndLogMessage(client, update, token, $"Не удалось обновить список переменных окружения бота",
+                //            BotLogger.LogLevels.WARNING,
+                //            $"{RunningConfiguration.WorkingDirectory}/latest.log");
+                //        return;
+                //    }
+                //    string envList = string.Empty;
+                //    foreach (DictionaryEntry de in Environment.GetEnvironmentVariables())
+                //        envList += $"{de.Key} = {de.Value}";
+                //    SendAndLogMessage(client, update, token, $"Список переменных окружения бота успешно обновлен:\n{envList}",
+                //        BotLogger.LogLevels.SUCCESS,
+                //        $"{RunningConfiguration.WorkingDirectory}/latest.log");
+                //    break;
+
+                case "/admin-help":
+                    /* 
+                     await client.SendTextMessageAsync(update.Message.Chat.Id,
+                        "⚙️ /help\n" +
+                        "Получить список доступных действий\n" +
+                        "⚙️ /get_actions\n" +
+                        "То же самое, что и help\n" +
+                        "⚙️ /get_config\n" +
+                        "Получить конфигурацию бота в нный момент\n" +
+                        "⚙️ /get_whitelist\n" +
+                        "Получить список идентификаторов администраторов бота (Telegram User ID)\n" +
+                        "⚙️ /update_actions\n" +
+                        "Обновить список доступных действий\n" +
+                        "⚙️ /update_whitelist\n" +
+                        "Обновить список идентификаторов администраторов бота (Telegram User ID)\n" +
+                        "⚙️ /update_config\n" +
+                        "Обновить конфигурацию бота\n" +
+                        "⚙️ /ping\n" +
+                        "Если бот жив, он ответит: *PONG*\n" +
+                        "⚙️ /stats\n" +
+                        "Получить статистику по количеству сообщений, обработанных ботом, включая запросы к API\n" +
+                        "⚙️ /get_api\n" +
+                        "Получить строку подключения к API, если оно активировано и работает\n" +
+                        "⚙️ /stop_api\n" +
+                        "Остановить API-сервис бота, если тот запущен\n" +
+                        "⚙️ /restart_api\n" +
+                        "Попытаться перезапустить API-сервис бота\n" +
+                        "⚙️ /action_names\n" +
+                        "Получить список всех действий по их именам",
+                        cancellationToken: token,
+                        replyToMessageId: update.Message.MessageId);
+                    */
+                    await client.SendTextMessageAsync(update.Message.Chat.Id,
+                        "⚙️ `/help`\n" +
+                        "Получить список доступных действий\n" +
+                        "⚙️ `/get-actions`\n" +
+                        "То же самое, что и help\n" +
+                        "⚙️ `/get-config`\n" +
+                        "Получить конфигурацию бота в нный момент\n" +
+                        "⚙️ `/get-whitelist`\n" +
+                        "Получить список идентификаторов администраторов бота (Telegram User ID)\n" +
+                        "⚙️ `/update-actions`\n" +
+                        "Обновить список доступных действий\n" +
+                        "⚙️ `/update-whitelist`\n" +
+                        "Обновить список идентификаторов администраторов бота (Telegram User ID)\n" +
+                        "⚙️ `/update-config`\n" +
+                        "Обновить конфигурацию бота\n" +
+                        "⚙️ `/ping`\n" +
+                        "Если бот жив, он ответит: *PONG*\n" +
+                        "⚙️ `/stats`\n" +
+                        "Получить статистику по количеству сообщений, обработанных ботом, включая запросы к API\n" +
+                        "⚙️ `/get-api`\n" +
+                        "Получить строку подключения к API, если оно активировано и работает\n" +
+                        "⚙️ `/stop-api`\n" +
+                        "Остановить API-сервис бота, если тот запущен\n" +
+                        "⚙️ `/restart-api`\n" +
+                        "Попытаться перезапустить API-сервис бота\n" +
+                        "⚙️ `/action-names`\n" +
+                        "Получить список всех действий по их именам\n" +
+                        "⚙️ `/update-env`\n" +
+                        "Обновить переменные окружения из файла **EnvPath**. Переменные доступны во скриптах, всех запускаемых ботом",
+                        cancellationToken: token,
+                        replyToMessageId: update.Message.MessageId,
+                        parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                    statContiner.SentMessagesCount++;
                     break;
             }
         }
@@ -641,6 +874,8 @@ namespace AiaTelegramBot.TG_Bot
             }
             Log($"Успешно изменен список действий: {BotActions.Count} => {botActions_buffer.Count}", BotLogger.LogLevels.SUCCESS);
             BotActions = botActions_buffer.OrderBy(x => x.Description).ToList();
+            BotActions.AddRange(BotSystemActions);
+            BotActions.Sort((a, b) => a.Keyword.CompareTo(b.Keyword));
             return true;
         }
         protected bool UpdateBotConfiguration()
@@ -689,11 +924,12 @@ namespace AiaTelegramBot.TG_Bot
             Log($"Отредактируйте файл и перезапустите бота командой:" +
                 $"{System.AppDomain.CurrentDomain.BaseDirectory}{System.AppDomain.CurrentDomain.FriendlyName} [токен бота]", BotLogger.LogLevels.INFO);
         }
-        protected async void GetHelpMessage(ITelegramBotClient client, Telegram.Bot.Types.Update update, CancellationToken token, bool includeAdmin)
+        protected async void GetHelpMessage(ITelegramBotClient client, Telegram.Bot.Types.Update update, CancellationToken token, bool adminUser)
         {
             if (update.Message == null) return;
             string HelpMessage = "Доступные вам команды:\n";
-            if (BotActions.FirstOrDefault(x => x.IsAdmin == includeAdmin) == null)
+            List<BotAction> actionsBuffer = BotActions.FindAll(x => x.IsAdmin == adminUser);
+            if (actionsBuffer.Count == 0)
             {
                 await client.SendTextMessageAsync(update.Message.Chat.Id, $"{HelpMessage}Нет доступных команд",
                     cancellationToken: token,
@@ -701,45 +937,57 @@ namespace AiaTelegramBot.TG_Bot
                     parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
                 return;
             }
-
+            List<BotAction> duplicateActions = new List<BotAction>();
             string[] buffer;
-            List<BotAction> actionsBuffer = BotActions;
-            List<BotAction> ReverseBuffer = new List<BotAction>();
-            Console.WriteLine($"\tBotActions: {BotActions.Count}\tactionsBuffer: {actionsBuffer.Count}");
+
             for (int i = 0; i < actionsBuffer.Count; i++)
             {
-                if (RunningConfiguration.HideInactiveActions && !BotActions[i].IsActive) continue;
-                if (string.IsNullOrEmpty(actionsBuffer[i].Keyword)) continue;
+                // Находим все команды, начало которых совпадает с началом других команд из списка
                 buffer = actionsBuffer[i].Keyword.Split(' ');
-                List<BotAction> botactions = actionsBuffer.FindAll(x => (CoreFunctions.StringCompare(x.Keyword.Split(' ')[0], buffer[0]) > 60.0));
-                if (botactions.Count == 1)
-                {
-                    HelpMessage += $"✏️ `{actionsBuffer[i].Keyword}`\n" +
-                    $"    📝 {actionsBuffer[i].Description ?? "(нет описания действия)"}\n\n";
-                }
-                //Сомнения
-                if (botactions.Count > 1)
-                {
-                    HelpMessage += $"✏️ `{actionsBuffer[i].Keyword.Split(' ')[0]}`\nДопустимые опции:\n";
-                    botactions.ForEach(x =>
-                    {
-                        // ToDo: Тут бы рекурсию сделать
-                        buffer = x.Keyword.Split(' ');
-                        if (buffer.Length > 1)
-                        {
-                            HelpMessage += $"`[{buffer[1]}]`  ";
-                        }
-                    });
-                    HelpMessage += $"\n📝 {actionsBuffer[i].Description ?? "(нет описания действия)"}\n\n";
-                }
-                actionsBuffer = actionsBuffer.Except(botactions).ToList();
-                ReverseBuffer.AddRange(botactions);
+                //duplicateActions = actionsBuffer.FindAll(x => (CoreFunctions.StringCompare(x.Keyword.Split(' ')[0], buffer[0]) > 60.0));
             }
-            foreach (var item in BotActions.Except(ReverseBuffer))
-            {
-                HelpMessage += $"✏️ `{item.Keyword}`\n" +
-                $"    {item.Description ?? "(нет описания действия)"}\n\n";
-            }
+
+            actionsBuffer.Sort((a, b) => a.Keyword.CompareTo(b.Keyword));
+
+            //string[] buffer;
+            //List<BotAction> ReverseBuffer = new List<BotAction>();
+            //Console.WriteLine($"\tBotActions: {BotActions.Count}\tactionsBuffer: {actionsBuffer.Count}");
+            //for (int i = 0; i < actionsBuffer.Count; i++)
+            //{
+            //    string helpEmoji = $"{(actionsBuffer[i].IsAdmin ? "⚙️" : "✏️")}";
+            //    if (RunningConfiguration.HideInactiveActions && !BotActions[i].IsActive) continue;
+            //    if (string.IsNullOrEmpty(actionsBuffer[i].Keyword)) continue;
+            //    buffer = actionsBuffer[i].Keyword.Split(' ');
+            //    List<BotAction> botactions = actionsBuffer.FindAll(x => (CoreFunctions.StringCompare(x.Keyword.Split(' ')[0], buffer[0]) > 60.0));
+            //    Console.WriteLine($"botactions: {botactions.Count}");
+            //    if (botactions.Count == 1)
+            //    {
+            //        HelpMessage += $"{helpEmoji} `{actionsBuffer[i].Keyword}`\n" +
+            //        $"📝 {actionsBuffer[i].Description ?? "(нет описания действия)"}\n\n";
+            //    }
+            //    //Сомнения
+            //    if (botactions.Count > 1)
+            //    {
+            //        HelpMessage += $"{helpEmoji} `{buffer[0]}`\n    ";
+            //        botactions.ForEach(x =>
+            //        {
+            //            // ToDo: Тут бы рекурсию сделать
+            //            buffer = x.Keyword.Split(' ');
+            //            if (buffer.Length > 1)
+            //            {
+            //                HelpMessage += $"`[{(string.IsNullOrEmpty(buffer[1]) ? "пусто" : $"{buffer[1]}")}]`  ";
+            //            }
+            //        });
+            //        HelpMessage += $"\n📝 {actionsBuffer[i].Description ?? "(нет описания действия)"}\n\n";
+            //    }
+            //    actionsBuffer = actionsBuffer.Except(botactions).ToList();
+            //    //ReverseBuffer.AddRange(botactions.FindAll(x => x.IsAdmin == adminUser));
+            //}
+            //foreach (var item in BotActions.Except(ReverseBuffer))
+            //{
+            //    HelpMessage += $"{(item.IsAdmin ? "⚙️" : "✏️")} `{item.Keyword}`\n" +
+            //    $"📝 {item.Description ?? "(нет описания действия)"}\n\n";
+            //}
             await client.SendTextMessageAsync(update.Message.Chat.Id, $"{HelpMessage}",
                 cancellationToken: token,
                 replyToMessageId: update.Message.MessageId,

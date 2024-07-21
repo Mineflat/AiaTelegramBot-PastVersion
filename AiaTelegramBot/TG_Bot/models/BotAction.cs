@@ -44,6 +44,10 @@ namespace AiaTelegramBot.TG_Bot.models
         public string? TargetID { get; set; } = string.Empty;
         public string? TargetMessage { get; set; } = string.Empty;
         protected List<string> FileContent = new List<string>();
+        public delegate Task BotActionHandler(ITelegramBotClient client, Telegram.Bot.Types.Update update, CancellationToken token, string? logPath, BotEntity bot);
+        public BotActionHandler? Handler { get; set; }
+
+
         //public BotAction(string name, string keyword, bool isActive, 
         //    bool isAdmin, string actionType, string location, string targetID, 
         //    string? targetMessage, string[] ImageGroupPaths)
@@ -138,7 +142,8 @@ namespace AiaTelegramBot.TG_Bot.models
         }
         protected async void SendImageGroup(ITelegramBotClient client, Telegram.Bot.Types.Update update, CancellationToken token, string? logPath = null)
         {
-            if (update.Message == null) return;
+            if (update.Message == null || update.Message.Chat.Id == 0) return;
+
             if ((ImageGroupPaths == null) || (ImageGroupPaths.Length < 2) || (ImageGroupPaths.Length > 10))
             {
                 BotLogger.Log($"Невозможно отправить несколько картинок в чат по команде `{Keyword}` ({Name}): " +
@@ -146,113 +151,26 @@ namespace AiaTelegramBot.TG_Bot.models
                     $"({(ImageGroupPaths == null ? "Элементов: 0 " : $"{ImageGroupPaths.Length}")})", LogLevels.ERROR, Location);
                 return;
             }
-            //////////////////////////////////////
-            //////////////////////////////////////
-            //////////////////////////////////////
             try
             {
                 Stream stream;
                 List<InputMediaPhoto> inputMedia = new List<InputMediaPhoto>();
                 for (int i = 0; i < ImageGroupPaths.Length; i++)
                 {
-                    await Console.Out.WriteLineAsync($"{ImageGroupPaths[i]} - {GetFilename(ImageGroupPaths[i])} (attach://{GetFilename(ImageGroupPaths[i])})");
-                    //await using Stream stream = System.IO.File.OpenRead(ImageGroupPaths[i]);
+                    await Console.Out.WriteLineAsync($"Отправляется файл {ImageGroupPaths[i]} в чат {update.Message.Chat.Id}");
                     stream = System.IO.File.OpenRead(ImageGroupPaths[i]);
-                    if (stream.Length == 0) Console.WriteLine("А СТРИМ-ТО ОЧИСТИЛСЯ РАНЬШЕ");
                     Telegram.Bot.Types.InputFile filePath = Telegram.Bot.Types.InputFile.FromStream(stream, $"attach://{GetFilename(ImageGroupPaths[i])}");
                     inputMedia.Add(new InputMediaPhoto(filePath));
                 }
                 IAlbumInputMedia[] sendMedia = inputMedia.ToArray();
-                for (int i = 0; i < sendMedia.Length; i++)
-                {
-                    Console.WriteLine(sendMedia[i]);
-                }
                 await client.SendMediaGroupAsync(update.Message.Chat.Id, sendMedia, cancellationToken: token);
-                //await client.SendMediaGroupAsync(update.Message.Chat.Id, inputMedia, cancellationToken: token);
-
-                //await client.SendMediaGroupAsync(update.Message.Chat.Id, media: new IAlbumInputMedia[]
-                //{
-
-                //}, inputMedia  cancellationToken: token);
             }
             catch (Exception IOException)
             {
                 BotLogger.Log($"Не удалось получить один или несколько файлов по команде \"{Keyword}\":\n{IOException.Message}", LogLevels.ERROR, logPath);
                 SendCustomMessage_API(client, update, token, $"Не удалось выполнить команду `{Keyword}` ({Name}):\n```\n{IOException.Message}\n```");
-                Console.WriteLine($"//////////////////////////////////////\n" +
-                    $"{JsonConvert.SerializeObject(IOException, Formatting.Indented)}\n" +
-                    $"//////////////////////////////////////");
             }
-            //////////////////////////////////////
-            //////////////////////////////////////
-            //////////////////////////////////////
-
-
-            //await client.SendMediaGroupAsync(update.Message.Chat.Id, phts,  cancellationToken: token);
-
-            //List<Telegram.Bot.Types.InputFile> content = new List<Telegram.Bot.Types.InputFile>();
-            //List<InputMediaPhoto> phts = new List<InputMediaPhoto>();
-            //for (int i = 0; i < ImageGroupPaths?.Length; i++)
-            //{
-            //    //imageStreams.Add(System.IO.File.OpenRead($"{ImageGroupPaths[i]}"));
-            //    content.Add(Telegram.Bot.Types.InputFile.FromStream(System.IO.File.OpenRead($"{ImageGroupPaths[i]}")));
-            //    phts.Add(new InputMediaPhoto(content[i]) { Caption = "--"});
-            //}
-            //await client.SendMediaGroupAsync(update.Message.Chat.Id, phts,  cancellationToken: token);
-            //return;
-
-            //try
-            //{
-            //List<Stream> imageStreams = new List<Stream>();
-            //List<Telegram.Bot.Types.InputFile> content = new List<Telegram.Bot.Types.InputFile>();
-            //List<InputMediaPhoto> phts = new List<InputMediaPhoto>();
-            //for (int i = 0; i < ImageGroupPaths?.Length; i++)
-            //{
-            //    //imageStreams.Add(System.IO.File.OpenRead($"{ImageGroupPaths[i]}"));
-            //    content.Add(Telegram.Bot.Types.InputFile.FromStream(System.IO.File.OpenRead($"{ImageGroupPaths[i]}")));
-            //    phts.Add(new InputMediaPhoto(content[i]));
-            //}
-
-            //List<Stream> imageStreams = new List<Stream>();
-            ////List<Telegram.Bot.Types.InputFile> content = new List<Telegram.Bot.Types.InputFile>();
-            ////List<InputMediaPhoto> phts = new List<InputMediaPhoto>();
-            ////for (int i = 0; i < ImageGroupPaths?.Length; i++)
-            ////{
-            ////    //imageStreams.Add(System.IO.File.OpenRead($"{ImageGroupPaths[i]}"));
-            ////    content.Add(Telegram.Bot.Types.InputFile.FromStream(System.IO.File.OpenRead($"{ImageGroupPaths[i]}")));
-            ////    phts.Add(new InputMediaPhoto(content[i]));
-            ////}
-            ////await client.SendMediaGroupAsync(update.Message.Chat.Id, phts);
-            //await using Stream stream = System.IO.File.OpenRead(randomImagePath);
-            //if (update.Message.MessageId == 0)
-            //{
-            //    await client.SendPhotoAsync(update.Message.Chat.Id,
-            //        Telegram.Bot.Types.InputFile.FromStream(stream, $"{GetFilename(randomImagePath)}"),
-            //        caption: $"`{GetFilename(randomImagePath)}`",
-            //        parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
-            //}
-            //else
-            //{
-            //    await client.SendPhotoAsync(update.Message.Chat.Id,
-            //        Telegram.Bot.Types.InputFile.FromStream(stream, $"{GetFilename(randomImagePath)}"),
-            //        caption: $"`{GetFilename(randomImagePath)}`",
-            //        replyToMessageId: update.Message.MessageId,
-            //        parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
-            //}
-            //}
-            //catch (Exception IOException)
-            //{
-            //    BotLogger.Log($"Не удалось получить один или несколько файлов по команде \"{Keyword}\":\n{IOException.Message}", LogLevels.ERROR, logPath);
-            //    SendCustomMessage_API(client, update, token, $"Не удалось выполнить команду `{Keyword}` ({Name}):\n```\n{IOException.Message}\n```");
-            //}
-            //finally
-            //{
-            //    foreach (var s in streams) s.Dispose();
-            //    phts.Clear();
-            //}
-
         }
-
         protected async void SendMessage(ITelegramBotClient client, Telegram.Bot.Types.Update update, CancellationToken token, string? logPath = null)
         {
             if (string.IsNullOrEmpty(update.Message?.Text)) return;
