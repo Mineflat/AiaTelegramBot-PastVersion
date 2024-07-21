@@ -928,7 +928,15 @@ namespace AiaTelegramBot.TG_Bot
         {
             if (update.Message == null) return;
             string HelpMessage = "Доступные вам команды:\n";
-            List<BotAction> actionsBuffer = BotActions.FindAll(x => x.IsAdmin == adminUser); // Выбираем только те действия, которые нам нужны
+            List<BotAction> actionsBuffer = new List<BotAction>();
+            if (RunningConfiguration.HideInactiveActions)
+            {
+                actionsBuffer = BotActions.FindAll(x => x.IsActive == true && x.IsAdmin == adminUser); // Выбираем только те действия, которые активны в данный момент
+            }
+            else
+            {
+                actionsBuffer = BotActions.FindAll(x => x.IsAdmin == adminUser); // Выбираем только те действия, которые активны в данный момент
+            }
             if (actionsBuffer.Count == 0)
             {
                 await client.SendTextMessageAsync(update.Message.Chat.Id, $"{HelpMessage}Нет доступных команд",
