@@ -928,56 +928,60 @@ namespace AiaTelegramBot.TG_Bot
         {
             if (update.Message == null) return;
             string HelpMessage = "Доступные вам команды:\n";
-            List<BotAction> actionsBuffer = new List<BotAction>();
-            if (RunningConfiguration.HideInactiveActions)
+            if (RunningConfiguration.ParsedUsers.Count == 0)
             {
-                actionsBuffer = BotActions.FindAll(x => x.IsActive == true && x.IsAdmin == adminUser); // Выбираем только те действия, которые активны в данный момент
-            }
-            else
-            {
-                actionsBuffer = BotActions.FindAll(x => x.IsAdmin == adminUser); // Выбираем только те действия, которые активны в данный момент
-            }
-            if (actionsBuffer.Count == 0)
-            {
-                await client.SendTextMessageAsync(update.Message.Chat.Id, $"{HelpMessage}Нет доступных команд",
-                    cancellationToken: token,
-                    replyToMessageId: update.Message.MessageId,
-                    parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
-                return;
-            }
-            actionsBuffer.Sort((a, b) => a.Keyword.CompareTo(b.Keyword.Split(' ')[0]));
-
-            List<BotAction> duplicateActions = new List<BotAction>();
-            string[] buffer;
-
-            for (int i = 0; i < actionsBuffer.Count; i++)
-            {
-                // Находим все команды, начало которых совпадает с началом других команд из списка
-                buffer = actionsBuffer[i].Keyword.Split(' ');
-                if (buffer.Length > 1)
+                if (update.Message == null) return;
+                List<BotAction> actionsBuffer = new List<BotAction>();
+                if (RunningConfiguration.HideInactiveActions)
                 {
-                    duplicateActions = actionsBuffer.FindAll(x => x.Keyword.StartsWith(buffer[0]));
-                    if (duplicateActions.Count > 0)
-                    {
-                        actionsBuffer = actionsBuffer.Except(duplicateActions).ToList();
-                        // Желательно, чтобы у дублирующих действий было идентичное описание. В противном случае, берем первое попавшееся (даже если это пустая строка)
-                        HelpMessage += $"{(duplicateActions[0].IsAdmin ? "⚙️" : "✏️")} `{duplicateActions[0].Keyword.Split(' ')[0]}`\n    ";
-                        foreach (BotAction action in duplicateActions)
-                        {
-                            string options = action.Keyword.Replace(buffer[0], "");
-                            //if (string.IsNullOrEmpty(options)) continue; // Желательно, но длина буфера и так будет > 0, а буфер формируется исходя из пробелов
-                            options = options.Trim(); //  Т.е. в теории словить доской по ебалу тут нельзя. В теории...
-                            //for (int j = 1; j < buffer.Length; j++) options += buffer[j];
-                            HelpMessage += $"`[{options.Trim()}]` ";
-                        }
-                        HelpMessage += $"\n📝 {duplicateActions[0].Description ?? "(нет описания действия)"}\n\n";
-                        continue;
-                    }
+                    actionsBuffer = BotActions.FindAll(x => x.IsActive == true && x.IsAdmin == adminUser); // Выбираем только те действия, которые активны в данный момент
                 }
-                HelpMessage += $"{(actionsBuffer[i].IsAdmin ? "⚙️" : "✏️")} `{actionsBuffer[i].Keyword}`\n" +
-                $"📝 {actionsBuffer[i].Description ?? "(нет описания действия)"}\n\n";
+                else
+                {
+                    actionsBuffer = BotActions.FindAll(x => x.IsAdmin == adminUser); // Выбираем только те действия, которые активны в данный момент
+                }
+                if (actionsBuffer.Count == 0)
+                {
+                    await client.SendTextMessageAsync(update.Message.Chat.Id, $"{HelpMessage}Нет доступных команд",
+                        cancellationToken: token,
+                        replyToMessageId: update.Message.MessageId,
+                        parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                    return;
+                }
+                actionsBuffer.Sort((a, b) => a.Keyword.CompareTo(b.Keyword.Split(' ')[0]));
 
-                //duplicateActions = actionsBuffer.FindAll(x => (CoreFunctions.StringCompare(x.Keyword.Split(' ')[0], buffer[0]) > 60.0));
+                List<BotAction> duplicateActions = new List<BotAction>();
+                string[] buffer;
+
+                for (int i = 0; i < actionsBuffer.Count; i++)
+                {
+                    // Находим все команды, начало которых совпадает с началом других команд из списка
+                    buffer = actionsBuffer[i].Keyword.Split(' ');
+                    if (buffer.Length > 1)
+                    {
+                        duplicateActions = actionsBuffer.FindAll(x => x.Keyword.StartsWith(buffer[0]));
+                        if (duplicateActions.Count > 0)
+                        {
+                            actionsBuffer = actionsBuffer.Except(duplicateActions).ToList();
+                            // Желательно, чтобы у дублирующих действий было идентичное описание. В противном случае, берем первое попавшееся (даже если это пустая строка)
+                            HelpMessage += $"{(duplicateActions[0].IsAdmin ? "⚙️" : "✏️")} `{duplicateActions[0].Keyword.Split(' ')[0]}`\n    ";
+                            foreach (BotAction action in duplicateActions)
+                            {
+                                string options = action.Keyword.Replace(buffer[0], "");
+                                //if (string.IsNullOrEmpty(options)) continue; // Желательно, но длина буфера и так будет > 0, а буфер формируется исходя из пробелов
+                                options = options.Trim(); //  Т.е. в теории словить доской по ебалу тут нельзя. В теории...
+                                                          //for (int j = 1; j < buffer.Length; j++) options += buffer[j];
+                                HelpMessage += $"`[{options.Trim()}]` ";
+                            }
+                            HelpMessage += $"\n📝 {duplicateActions[0].Description ?? "(нет описания действия)"}\n\n";
+                            continue;
+                        }
+                    }
+                    HelpMessage += $"{(actionsBuffer[i].IsAdmin ? "⚙️" : "✏️")} `{actionsBuffer[i].Keyword}`\n" +
+                    $"📝 {actionsBuffer[i].Description ?? "(нет описания действия)"}\n\n";
+
+                    //duplicateActions = actionsBuffer.FindAll(x => (CoreFunctions.StringCompare(x.Keyword.Split(' ')[0], buffer[0]) > 60.0));
+                }
             }
             await client.SendTextMessageAsync(update.Message.Chat.Id, $"{HelpMessage}",
                 cancellationToken: token,

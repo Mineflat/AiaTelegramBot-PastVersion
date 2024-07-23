@@ -63,7 +63,8 @@ namespace AiaTelegramBot.TG_Bot.models
         public string? UserDirectory { get; set; } = "";
         // Указывает на возможность использования конфигурационных файлов пользователей
         public bool UseUserConfiguration { get; protected set; } = false;
-
+        // Хранилище пользователей
+        public List<UserEntity> ParsedUsers { get; protected set; }
 
         #region По командам 
         // Список команд администратора:
@@ -187,6 +188,7 @@ namespace AiaTelegramBot.TG_Bot.models
                     }
                     if (usersBuffer.Count > 0)
                     {
+                        ParsedUsers = usersBuffer;
                         BotLogger.Log($"Добавлено новых пользователей: {usersBuffer.Count} (директория {UserDirectory})", BotLogger.LogLevels.SUCCESS, LogPath);
                         return true;
                     }
