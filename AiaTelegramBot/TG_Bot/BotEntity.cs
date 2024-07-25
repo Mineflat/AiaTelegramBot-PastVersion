@@ -17,6 +17,7 @@ using System.Collections.Generic;
 using System.Threading.Channels;
 using System.Text.Json;
 using Telegram.Bot.Types;
+using System.Reflection;
 
 namespace AiaTelegramBot.TG_Bot
 {
@@ -132,6 +133,7 @@ namespace AiaTelegramBot.TG_Bot
         #region BOT
         public string? BotID { get; protected set; } = string.Empty;
         public string? BotName { get; protected set; } = string.Empty;
+        public string? UserDirectory { get; protected set; } = string.Empty;
         protected StatUnit? statContiner = null;
         public readonly static List<BotAction> BotSystemActions = new List<BotAction>()
         {
@@ -342,6 +344,56 @@ namespace AiaTelegramBot.TG_Bot
         protected CancellationTokenSource cancellationToken = new CancellationTokenSource();
         protected ReceiverOptions Botoptions = new ReceiverOptions() { AllowedUpdates = { }, ThrowPendingUpdates = true };
         protected List<string> Usernames = new List<string>();
+        #region FUNCTIONS
+        // Идентификация пользователя
+        protected BotAction? VerifyUserComand(long userID, string requestedKeyword)
+        {
+            if (string.IsNullOrEmpty(requestedKeyword)) return null;
+            if (RunningConfiguration.ParsedUsers.FirstOrDefault(x => (x.UserID == userID) && (x.ActiveComands != null) &&
+            (!string.IsNullOrEmpty(x.ActiveComands?.FirstOrDefault(j => j == requestedKeyword)))) != null)
+            {
+                return BotActions.FirstOrDefault(x => x.Keyword.ToLower() == requestedKeyword.ToLower());
+            }
+            return null;
+        }
+        // Парсинг команды пользователя
+        protected string? IdentifyCommand(Telegram.Bot.Types.Update update)
+        {
+            string? comand = update.Message?.Text;
+            if (!string.IsNullOrEmpty(comand)) return comand.ToLower();
+            return null;
+        }
+        // Если вместо юзера указан просто ID чата, то это тоже считается пользователем
+        protected UserEntity? IdentifyUser(Telegram.Bot.Types.Update update)
+        {
+            if (update.Message == null) return null;
+            return RunningConfiguration.ParsedUsers.FirstOrDefault(x => x.UserID == update.Message.Chat.Id);
+        }
+        protected async Task HandleUserUpdate(ITelegramBotClient client, Telegram.Bot.Types.Update update, CancellationToken token)
+        {
+            string? comandName = IdentifyCommand(update);
+            if (string.IsNullOrEmpty(comandName)) return;
+            UserEntity? targetUser = IdentifyUser(update);
+            if (targetUser == null)
+            {
+                SendAndLogMessage(client, update, token, "Вы не можете выполнять эту команду, т.к. вас нет в белом списке", BotLogger.LogLevels.WARNING, RunningConfiguration.LogPath);
+                return;
+            }
+
+            BotAction? targetAction = VerifyUserComand(targetUser.UserID, comandName);
+            if (targetAction != null && targetAction.IsActive)
+            {
+                if (targetAction.ActionType == "SYSTEM")
+                {
+                    // Обработка вызова системной команды
+                    targetAction.Handler?.Invoke(client, update, token, $"{RunningConfiguration.LogPath}", this);
+                }
+                else
+                {
+                    targetAction?.RunAction(client, update, token, $"{RunningConfiguration.LogPath}");
+                }
+            }
+        }
         protected async void StoreUsername(Telegram.Bot.Types.Update update)
         {
             if (!RunningConfiguration.StoreNewUsernames) return;
@@ -396,6 +448,7 @@ namespace AiaTelegramBot.TG_Bot
             Log("Предварительная настройка Телеграмм-бота", BotLogger.LogLevels.INFO);
             if (!UpdateBotConfiguration()) return;
             if (!UpdateBotActions()) return;
+            if (!RunningConfiguration.UpdateUsersConfiguration(BotActions)) return;
             cancellationToken = new CancellationTokenSource();
             botClient = new TelegramBotClient(token);
             botClient.StartReceiving(
@@ -458,7 +511,7 @@ namespace AiaTelegramBot.TG_Bot
                     // Проверка, что пользователь есть в белом списке
                     if (RunningConfiguration.Whitelist.Count > 0) if (RunningConfiguration.Whitelist.FirstOrDefault(x => x == $"{update.Message?.From?.Id}") != null) userIsAdmin = true;
 #pragma warning disable CS8602 // Разыменование вероятной пустой ссылки.
-                    if (RunningConfiguration.UseUserConfiguration) await HandleUpdateAsync_UserConfiguration(client, update, token, update.Message.Text.Trim(), userIsAdmin);
+                    if (RunningConfiguration.UseUserConfiguration) await HandleUserUpdate(client, update, token);// await HandleUpdateAsync_UserConfiguration(client, update, token, update.Message.Text.Trim(), userIsAdmin);
                     else await HandleUpdateAsync_vanilla(client, update, token, update.Message.Text.Trim(), userIsAdmin);
 #pragma warning restore CS8602 // Разыменование вероятной пустой ссылки.
                     break;
@@ -762,7 +815,7 @@ namespace AiaTelegramBot.TG_Bot
         {
             Log(exception, BotLogger.LogLevels.CRITICAL);
             Log($"Попытка перезапуска бота @{BotName ?? "[неизвестно]"}", BotLogger.LogLevels.INFO);
-            //await Task.Run(() => RestartBot(Environment.GetCommandLineArgs()[1]));
+            await Task.Run(() => RestartBot(Environment.GetCommandLineArgs()[1]));
             if (botClient != null) Log($"Успешный перезапуск бота @{BotName}", BotLogger.LogLevels.SUCCESS);
             else Log($"Не удалось перезапустить бота @{BotName}. Инициировано завершение процесса", BotLogger.LogLevels.CRITICAL);
         }
@@ -802,11 +855,14 @@ namespace AiaTelegramBot.TG_Bot
                 Log($"Не удалось получить список действий, т.к. не задан путь к директории с ними", BotLogger.LogLevels.ERROR);
                 return false;
             }
+            Console.WriteLine(RunningConfiguration.ActionsDirectory);
             Log($"Начат процесс обновления списка действий.\n\tЧтение из директории \"{RunningConfiguration.ActionsDirectory}\"", BotLogger.LogLevels.INFO);
-            List<string> configLocations = Directory.EnumerateFiles(RunningConfiguration.ActionsDirectory, "*.json", SearchOption.AllDirectories).ToList<string>();
+            List<string> configLocations = new List<string>();
             List<BotAction> botActions_buffer = new List<BotAction>();
             try
             {
+                configLocations = Directory.EnumerateFiles(RunningConfiguration.ActionsDirectory, "*.json", SearchOption.AllDirectories).ToList<string>();
+                botActions_buffer = new List<BotAction>();
                 foreach (string filePath in configLocations)
                 {
                     try
@@ -1032,6 +1088,7 @@ namespace AiaTelegramBot.TG_Bot
             //    replyToMessageId: update.Message.MessageId,
             //    parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
         }
+        #endregion
         #endregion
     }
 }

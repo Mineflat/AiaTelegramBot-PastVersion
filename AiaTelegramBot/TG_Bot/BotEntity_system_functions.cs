@@ -26,6 +26,8 @@ namespace AiaTelegramBot.TG_Bot
         /// https://t.me/ElijahKamsky
 
 
+        #region HELPS
+        #region HELPS
         /// <summary>
         /// Отправить список команд, доступных пользователю
         /// </summary>
@@ -34,7 +36,6 @@ namespace AiaTelegramBot.TG_Bot
         /// <param name="token">Токен, используемый для отмены запроса в Polling-режиме</param>
         /// <param name="logPath">Путь к файлу логов, куда будет записан выхлоп функции</param>
         /// <param name="bot">Объект бота. Необходим для вызова нестатической функции внутри класса</param>
-        #region HELPS
 
         protected static async Task GetHelp(ITelegramBotClient client, Telegram.Bot.Types.Update update, CancellationToken token, string? logPath, BotEntity bot)
         {
@@ -292,6 +293,7 @@ namespace AiaTelegramBot.TG_Bot
             bot.SendAndLogMessage(client, update, token, $"{bot.RunningConfiguration.GetBotWhiteList()}", BotLogger.LogLevels.WARNING, $"{logPath}");
         }
 
+        #endregion
         #endregion
     }
 }

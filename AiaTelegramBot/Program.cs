@@ -22,7 +22,7 @@ namespace AiaTelegramBot
             //string serialized = JsonConvert.SerializeObject(deserialized, Formatting.Indented);
             //Console.WriteLine($"SERIALIZED:\n---------------\n{serialized}\n---------------");
             //return;
-
+            Console.WriteLine(System.Reflection.Assembly.GetExecutingAssembly().Location);
 
 
             if (args.Length == 1)

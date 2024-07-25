@@ -2,7 +2,9 @@
   "profiles": {
     "AiaTelegramBot": {
       "commandName": "Project",
-      "commandLineArgs": "6421001946:AAHFeLh_ejyAoAtj8RgCvgw01Qb_KBx8T-w"
+      "commandLineArgs": "6421001946:AAH7oNc0n2NSpMe7xh295gARJxhyAuqIDqA",
+      "workingDirectory": "E:\\Pet-projects\\C#\\AiaTelegramBot\\AiaTelegramBot\\bin\\Release\\net6.0\\publish\\linux-x64",
+      "remoteDebugEnabled": false
     }
   }
 }

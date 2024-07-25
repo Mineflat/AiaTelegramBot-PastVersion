@@ -7,6 +7,7 @@ using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
+using Telegram.Bot.Types;
 
 namespace AiaTelegramBot.TG_Bot.models
 {
@@ -64,7 +65,7 @@ namespace AiaTelegramBot.TG_Bot.models
         // Указывает на возможность использования конфигурационных файлов пользователей
         public bool UseUserConfiguration { get; protected set; } = false;
         // Хранилище пользователей
-        public List<UserEntity> ParsedUsers { get; protected set; }
+        public List<UserEntity> ParsedUsers { get; protected set; } = new List<UserEntity>();
 
         #region По командам 
         // Список команд администратора:
@@ -98,17 +99,17 @@ namespace AiaTelegramBot.TG_Bot.models
             UserDirectory = userDirectory;
             UpdateBotWhiteList();
             ExportEnvVars();
-            UseUserConfiguration = UpdateUsersConfiguration();
+            UseUserConfiguration = false;
         }
 
         public bool ExportEnvVars()
         {
             try
             {
-                if (File.Exists(EnvPath))
+                if (System.IO.File.Exists(EnvPath))
                 {
                     BotLogger.Log($"Экспорт переменных окруженя из файла {EnvPath}...", BotLogger.LogLevels.INFO, LogPath);
-                    List<string> lines = File.ReadLines(EnvPath).ToList();
+                    List<string> lines = System.IO.File.ReadLines(EnvPath).ToList();
                     string[] buffer;
                     if (lines.Count > 0)
                     {
@@ -140,7 +141,7 @@ namespace AiaTelegramBot.TG_Bot.models
             }
             return false;
         }
-        public bool UpdateUsersConfiguration()
+        public bool UpdateUsersConfiguration(List<BotAction> botComands)
         {
             if (!Directory.Exists(UserDirectory))
             {
@@ -156,7 +157,7 @@ namespace AiaTelegramBot.TG_Bot.models
                     string content = string.Empty;
                     foreach (string filePath in filePaths)
                     {
-                        content = File.ReadAllText(filePath);
+                        content = System.IO.File.ReadAllText(filePath);
                         JsonSerializerSettings jsonSelectSettings = new JsonSerializerSettings()
                         {
                             EqualityComparer = StringComparer.OrdinalIgnoreCase,
@@ -171,7 +172,7 @@ namespace AiaTelegramBot.TG_Bot.models
                                 BotLogger.LogLevels.ERROR, LogPath);
                             continue;
                         }
-                        if ((userConfigEntity.ActiveComands == null) || (userConfigEntity.ActiveComands.Length == 0))
+                        if ((userConfigEntity.ActiveComands == null) || (userConfigEntity.ActiveComands.Count == 0))
                         {
                             BotLogger.Log($"Файл {filePath} пропущен, т.к. указанный пользователь имеет пустой массив команд",
                                 BotLogger.LogLevels.ERROR, LogPath);
@@ -183,6 +184,19 @@ namespace AiaTelegramBot.TG_Bot.models
                                 BotLogger.LogLevels.ERROR, LogPath);
                             continue;
                         }
+                        if (botComands.Count > 0)
+                        {
+                            foreach (var botCommand in userConfigEntity.ActiveComands)
+                            {
+                                if (botComands.FirstOrDefault(x => x.Keyword?.ToLower() == botCommand.ToLower()) == null)
+                                {
+                                    BotLogger.Log($"Не удалось установить команду \"{botCommand}\" для пользователя {userConfigEntity.UserID}: " +
+                                        $"команда не найдена в списке команд", BotLogger.LogLevels.WARNING, LogPath);
+                                    userConfigEntity.ActiveComands.Remove(botCommand);
+                                }
+                            }
+                        }
+
                         usersBuffer.Add(userConfigEntity);
                         BotLogger.Log($"Добавлен новый пользователь с идентификатором {userConfigEntity.UserID}", BotLogger.LogLevels.INFO, LogPath);
                     }
@@ -206,7 +220,7 @@ namespace AiaTelegramBot.TG_Bot.models
         }
         public bool UpdateBotWhiteList()
         {
-            if (!File.Exists(WhitelistLocation))
+            if (!System.IO.File.Exists(WhitelistLocation))
             {
                 BotLogger.Log($"Не задан файл с пользователями из белого списка. Команды, помеченные как \"IsAdmin\": \"true\" не будут обрабатываться",
                     BotLogger.LogLevels.WARNING,
@@ -218,7 +232,7 @@ namespace AiaTelegramBot.TG_Bot.models
                 BotLogger.Log($"Начата попытка обновления белого списка из файла: \"{WhitelistLocation}\"",
                     BotLogger.LogLevels.INFO,
                     $"{WorkingDirectory}/latest.log");
-                List<string> buffer = File.ReadAllLines(WhitelistLocation).ToList();
+                List<string> buffer = System.IO.File.ReadAllLines(WhitelistLocation).ToList();
                 if (buffer.Count > 0)
                 {
                     BotLogger.Log($"Белый список обновлен из файла \"{WhitelistLocation}\": {Whitelist?.Count ?? 0} => {buffer.Count}",

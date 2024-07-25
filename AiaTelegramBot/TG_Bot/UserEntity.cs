@@ -8,7 +8,7 @@ namespace AiaTelegramBot.TG_Bot
 {
     internal class UserEntity
     {
-        public long UserID {  get; set; }
-        public string[]? ActiveComands { get; set; }
+        public long UserID { get; set; }
+        public List<string> ActiveComands { get; set; } = new List<string>();
     }
 }
