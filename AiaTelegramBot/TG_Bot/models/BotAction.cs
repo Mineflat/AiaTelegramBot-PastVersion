@@ -46,41 +46,6 @@ namespace AiaTelegramBot.TG_Bot.models
         protected List<string> FileContent = new List<string>();
         public delegate Task BotActionHandler(ITelegramBotClient client, Telegram.Bot.Types.Update update, CancellationToken token, string? logPath, BotEntity bot);
         public BotActionHandler? Handler { get; set; }
-
-
-        //public BotAction(string name, string keyword, bool isActive, 
-        //    bool isAdmin, string actionType, string location, string targetID, 
-        //    string? targetMessage, string[] ImageGroupPaths)
-        //{
-        //    // Прости господи меня за такой код...
-        //    if (string.IsNullOrEmpty(name)) throw new Exception("Поле name не может быть пустым");
-        //    if (string.IsNullOrEmpty(keyword)) throw new Exception("Поле keyword не может быть пустым");
-        //    if (string.IsNullOrEmpty(actionType)) throw new Exception("Поле actionType не может быть пустым");
-        //    // Господь простил :) 
-        //    Name = name;
-        //    Keyword = keyword;
-        //    IsActive = isActive;
-        //    IsAdmin = isAdmin;
-        //    ActionType = actionType;
-        //    ImageGroupPaths = ImageGroupPaths;
-        //    if (string.IsNullOrEmpty(targetID) || string.IsNullOrEmpty(targetMessage))
-        //    {
-        //        if (!string.IsNullOrEmpty(location))
-        //            if (!(System.IO.File.Exists(location) || System.IO.Directory.Exists(location)))
-        //            {
-        //                throw new Exception($"Файл или директория, указанная в поле location, не существует ({name})");
-
-        //            }
-        //            else
-        //            {
-        //                Location = location;
-        //                Filename = GetFilename(Location);
-        //            }
-        //        return;
-        //    }
-        //    TargetMessage = targetMessage;
-        //    TargetID = targetID;
-        //}
         public static string? GetFilename(string location)
         {
             string[] pathContent;
